@@ -198,7 +198,7 @@ Future<void> findBestMove(Chess chess, void Function(Move?) onMoveFound) async {
 
     print("[${DateTime.now()}] Starting search (depth=$depth) for move: $m");
 
-    final eval = -await pvSearch(c, depth, -beta, -alpha, c.turn);
+    final eval = -await pvSearch(c, depth, -beta, -alpha);
     print(
         "[${DateTime.now()}] Finished search (depth=$depth) for move: $m with eval: $eval");
 
@@ -229,8 +229,7 @@ Future<void> findBestMove(Chess chess, void Function(Move?) onMoveFound) async {
 }
 
 // Ensure pvSearch is truly async
-Future<double> pvSearch(
-    Chess c, int depth, double alpha, double beta, Color player) async {
+Future<double> pvSearch(Chess c, int depth, double alpha, double beta) async {
   if (depth == 0 || c.game_over) {
     return evaluatePosition(c, c.turn);
   }
