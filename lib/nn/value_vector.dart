@@ -1,10 +1,18 @@
 import "dart:math" as math;
+import "dart:typed_data";
 import "value.dart";
 
 class ValueVector {
   final List<Value> values;
 
   ValueVector(this.values);
+
+  factory ValueVector.fromFloat32List(Float32List data) {
+    return ValueVector(List.generate(data.length, (i) => Value(data[i])));
+  }
+  factory ValueVector.fromDoubleList(List<double> data) {
+    return ValueVector(List.generate(data.length, (i) => Value(data[i])));
+  }
 
   // Dot product with another ValueVector
   Value dot(ValueVector other) {

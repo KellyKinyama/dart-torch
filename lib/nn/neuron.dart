@@ -18,16 +18,15 @@ class Neuron extends Module {
 
     /// print(fixedLengthList); // [0, 1, 4]
 
-    Value b = Value(0);
+    Value b = Value(0.5);
 
     return Neuron(ValueVector(w), b: b, nonlin: true);
   }
 
   Value forward(ValueVector x) {
     final matMul = w.dot(x);
-    
 
-    return b == null ? w.dot(x) : matMul + b;
+    return b == null ? matMul : matMul + b;
   }
 
   @override

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'matrix2d.dart';
+import 'value.dart';
 import 'value_vector.dart';
 
 class LinearLayer {

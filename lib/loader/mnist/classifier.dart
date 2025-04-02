@@ -3,7 +3,8 @@ import 'dart:typed_data';
 import 'dart:math';
 
 // Assume your MultiLayerPerceptron class is defined elsewhere
-import 'mlp.dart';  
+import '../../nn/value_vector.dart';
+import 'mlp.dart';
 
 class MNISTDataset {
   late List<Float32List> images;
@@ -34,7 +35,8 @@ class MNISTDataset {
     int offset = 16;
     for (int i = 0; i < numImages; i++) {
       final pixels = Uint8List.sublistView(file, offset, offset + imageSize);
-      images.add(Float32List.fromList(pixels.map((px) => px / 255.0).toList())); // Normalize to [0,1]
+      images.add(Float32List.fromList(
+          pixels.map((px) => px / 255.0).toList())); // Normalize to [0,1]
       offset += imageSize;
     }
     return images;
@@ -52,46 +54,57 @@ class MNISTDataset {
 }
 
 void main() async {
-  const trainImagePath = 'train-images-idx3-ubyte';
-  const trainLabelPath = 'train-labels-idx1-ubyte';
+  const trainImagePath = 'lib/loader/mnist/train-images.idx3-ubyte';
+  const trainLabelPath = 'lib/loader/mnist/train-labels.idx1-ubyte';
 
   final mnist = await MNISTDataset.load(trainImagePath, trainLabelPath);
-  print('Loaded ${mnist.images.length} images and ${mnist.labels.length} labels.');
+  print(
+      'Loaded ${mnist.images.length} images and ${mnist.labels.length} labels.');
 
   // Initialize Neural Network
+  print("Creating model");
   final model = MultiLayerPerceptron(
-    inputSize: 784, // 28x28 images flattened
-    hiddenSizes: [128, 128], // Two hidden layers
-    outputSize: 10, // Digits 0-9
-    learningRate: 0.01,
-  );
+      // inputSize: 784, // 28x28 images flattened
+      // hiddenSizes: [128, 128], // Two hidden layers
+      // outputSize: 10, // Digits 0-9
+      // learningRate: 0.01,
+      0.05);
 
   // Train the model
-  trainModel(model, mnist.images, mnist.labels, epochs: 5, batchSize: 32);
+  print("Training model");
+  trainModel(model, mnist.images, mnist.labels, epochs: 3000, batchSize: 32);
 
   // Test on first image
-  final prediction = model.predict(mnist.images[0]);
-  print('Predicted digit: ${prediction.indexWhere((v) => v == prediction.reduce(max))}');
+  final prediction =
+      model.forward(ValueVector.fromFloat32List(mnist.images[0]));
+
+  final maxVal = prediction.values.map((n) => n.data).reduce(max);
+  print(
+      'Predicted digit: ${prediction.values.indexWhere((v) => v.data == maxVal)}');
+  print('Expected digit: ${mnist.labels[0]}');
 }
 
-void trainModel(MultiLayerPerceptron model, List<Float32List> images, List<int> labels,
-    {int epochs = 5, int batchSize = 32}) {
-  final random = Random();
+// void trainModel(
+//     MultiLayerPerceptron model, List<Float32List> images, List<int> labels,
+//     {int epochs = 5, int batchSize = 32}) {
+//   final random = Random();
 
-  for (int epoch = 0; epoch < epochs; epoch++) {
-    double totalLoss = 0.0;
+//   for (int epoch = 0; epoch < epochs; epoch++) {
+//     double totalLoss = 0.0;
 
-    for (int i = 0; i < images.length; i++) {
-      final input = images[i];
-      final target = List<double>.filled(10, 0.0);
-      target[labels[i]] = 1.0; // One-hot encoding
+//     for (int i = 0; i < images.length; i++) {
+//       final input = images[i];
+//       final target = List<double>.filled(10, 0.0);
+//       target[labels[i]] = 1.0; // One-hot encoding
 
-      final loss = model.train(input, target);
-      totalLoss += loss;
+//       final loss = model.train(input, target);
+//       totalLoss += loss;
 
-      if (i % 1000 == 0) print('Epoch $epoch, Sample $i, Loss: ${loss.toStringAsFixed(4)}');
-    }
+//       if (i % 1000 == 0)
+//         print('Epoch $epoch, Sample $i, Loss: ${loss.toStringAsFixed(4)}');
+//     }
 
-    print('Epoch $epoch complete. Average Loss: ${(totalLoss / images.length).toStringAsFixed(4)}');
-  }
-}
+//     print(
+//         'Epoch $epoch complete. Average Loss: ${(totalLoss / images.length).toStringAsFixed(4)}');
+//   }
+// }

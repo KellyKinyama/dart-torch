@@ -23,7 +23,7 @@ class Value {
     final o = Value.toValue(other);
     final out = Value(data + o.data, {this, o}, '+');
     out._backward = () {
-      this.grad += out.grad;
+      grad += out.grad;
       o.grad += out.grad;
     };
     return out;
@@ -33,7 +33,7 @@ class Value {
     final o = Value.toValue(other);
     final out = Value(data * o.data, {this, o}, '*');
     out._backward = () {
-      this.grad += o.data * out.grad; // Correct gradient for this
+      grad += o.data * out.grad; // Correct gradient for this
       o.grad += data * out.grad; // Correct gradient for o
     };
     return out;
@@ -49,8 +49,8 @@ class Value {
     }
     final out = Value(data / o.data, {this, o}, '/');
     out._backward = () {
-      this.grad += (1 / o.data) * out.grad; // Correct for this
-      o.grad += (-this.data / (o.data * o.data)) * out.grad; // Correct for o
+      grad += (1 / o.data) * out.grad; // Correct for this
+      o.grad += (-data / (o.data * o.data)) * out.grad; // Correct for o
     };
     return out;
   }
@@ -59,8 +59,7 @@ class Value {
     final result = math.pow(data, exponent).toDouble();
     final out = Value(result, {this}, '**$exponent');
     out._backward = () {
-      this.grad +=
-          (exponent * math.pow(data, exponent - 1).toDouble()) * out.grad;
+      grad += (exponent * math.pow(data, exponent - 1).toDouble()) * out.grad;
     };
     return out;
   }
@@ -119,6 +118,7 @@ class Value {
   // Zero gradients recursively
   void zeroGrad() {
     final visited = <Value>{};
+    // ignore: no_leading_underscores_for_local_identifiers
     void _reset(Value v) {
       if (!visited.contains(v)) {
         visited.add(v);
@@ -188,7 +188,7 @@ class Value {
     }
 
     buildTopo(this);
-    this.grad = 1.0;
+    grad = 1.0;
     for (final v in topo.reversed) {
       v._backward();
     }
@@ -204,43 +204,45 @@ class Value {
 
 void main() {
   print('--- Example 1: Basic Arithmetic ---');
-  final a = Value(2.0);
-  final b = Value(3.0);
+  Value a = Value(2.0);
+  Value b = Value(3.0);
   final c = a + b;
   c.backward();
   print('c: $c  // Expected: data=5.0');
-  print('a: $a  // Expected grad=1.0');
-  print('b: $b  // Expected grad=1.0');
+  print('a: $a  // Expected: grad=1.0');
+  print('b: $b  // Expected: grad=1.0');
 
   print('\n--- Example 2: Multiplication ---');
+  a = Value(2.0);
+  b = Value(3.0);
   final d = a * b;
   d.backward();
   print('d: $d  // Expected: data=6.0');
-  print('a: $a  // Expected grad=3.0');
-  print('b: $b  // Expected grad=2.0');
+  print('a: $a  // Expected: grad=3.0');
+  print('b: $b  // Expected: grad=2.0');
 
   print('\n--- Example 3: Polynomial y = x^2 + 3x + 1 ---');
   final x1 = Value(2.0);
   final y1 = x1 * x1 + x1 * 3.0 + 1;
   y1.backward();
-  print('y1: $y1  // Expected data=11.0');
-  print('x1: $x1  // Expected grad=7.0');
+  print('y1: $y1  // Expected: data=11.0');
+  print('x1: $x1  // Expected: grad=7.0');
 
   print('\n--- Example 4: Power y = x^3 ---');
   final x2 = Value(2.0);
   final y2 = x2.pow(3);
   y2.backward();
-  print('y2: $y2  // Expected data=8.0');
-  print('x2: $x2  // Expected grad=12.0');
+  print('y2: $y2  // Expected: data=8.0');
+  print('x2: $x2  // Expected: grad=12.0');
 
   print('\n--- Example 5: Negative and Division y = -a / b ---');
   final a2 = Value(4.0);
   final b2 = Value(2.0);
   final y3 = -a2 / b2;
   y3.backward();
-  print('y3: $y3  // Expected data=-2.0');
-  print('a2: $a2  // Expected grad=-0.5');
-  print('b2: $b2  // Expected grad=1.0');
+  print('y3: $y3  // Expected: data=-2.0');
+  print('a2: $a2  // Expected: grad=-0.5');
+  print('b2: $b2  // Expected: grad=1.0');
 
   print('\n--- Example 6: Sigmoid Activation ---');
   final x3 = Value(1.0);
@@ -312,7 +314,7 @@ void main() {
   final y9 = Value(6.0);
   final z9 = (x9 + 2.0) * (y9 - 1.0);
   z9.backward();
-  print('z9: $z9  // Expected data=20.0');
+  print('z9: $z9  // Expected data=30.0');
   print('x9: $x9  // Expected grad=4.0');
   print('y9: $y9  // Expected grad=3.0');
 

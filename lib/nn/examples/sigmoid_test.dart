@@ -172,8 +172,9 @@ void main() {
     }
 
     final totalLoss = losses.reduce((a, b) => a + b);
-    final avgLoss = totalLoss * (1.0 / inputs.length);
-    avgLoss.backward();
+    // final avgLoss = totalLoss * (1.0 / inputs.length);
+    // avgLoss.backward();
+    totalLoss.backward();
 
     // Gradient descent
     model.updateWeights();
