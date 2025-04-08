@@ -3,7 +3,8 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'package:chess/chess.dart';
+import "package:chess/chess.dart";
+// import 'chess_board.dart';
 
 // Find the best move using async pvSearch (parallel execution)
 // Future<void> findBestMove(Chess chess, void Function(Move?) onMoveFound) async {
@@ -190,15 +191,16 @@ Future<void> findBestMove(Chess chess, void Function(Move?) onMoveFound) async {
   print("Starting parallel pvSearch with iterative deepening...");
 
   Future<void> searchMove(Move m, int depth) async {
-    if (depth > PLY) return; // Stop at max depth
-
-    chess.move(m);
-    final c = Chess.fromFEN(chess.fen);
-    chess.undo();
+    //chess.move(m);
+    // final c = Chess.fromFEN(chess.fen);
+    final c = chess.copy();
+    //chess.undo();
 
     print("[${DateTime.now()}] Starting search (depth=$depth) for move: $m");
 
+    c.move(m);
     final eval = -await pvSearch(c, depth, -beta, -alpha);
+    c.undo();
     print(
         "[${DateTime.now()}] Finished search (depth=$depth) for move: $m with eval: $eval");
 
@@ -209,8 +211,9 @@ Future<void> findBestMove(Chess chess, void Function(Move?) onMoveFound) async {
       print(
           "Updated best move at depth $depth: $bestMove with eval: $highestEval");
     }
-
+    if (depth > PLY) return; // Stop at max depth
     // Immediately start searching this move at the next depth
+    if (m == null) throw Exception("move cannot be null");
     await searchMove(m, depth + 1);
   }
 
@@ -238,7 +241,7 @@ Future<double> pvSearch(Chess c, int depth, double alpha, double beta) async {
     c.move(m);
 
     // Ensure async execution
-    await Future(() {});
+    // await Future(() {});
 
     final val = -await alphaBeta(c, depth - 1, -beta, -alpha, c.turn);
     c.undo();
@@ -258,14 +261,29 @@ Future<double> pvSearch(Chess c, int depth, double alpha, double beta) async {
 Future<double> alphaBeta(
     Chess c, int depth, double alpha, double beta, Color player) async {
   if (depth == 0 || c.game_over) {
-    return evaluatePosition(c, c.turn);
+    // return evaluatePosition(c, c.turn);
+    return await qSearch(c, depth, alpha, beta, c.turn);
   }
+
+  // final them = c.turn;
+
+  // bool inCheck = c.attacked(
+  //     them == Chess.WHITE ? Chess.BLACK : Chess.WHITE, c.kings[c.turn]);
+  // if (inCheck) print("We are in check");
 
   for (final m in c.moves({'asObjects': true}) as Iterable<Move>) {
     c.move(m);
 
+    // if (m.captured == null) {
+    //   if (c.attacked(them, c.kings[c.turn])) {
+    //     print("This move gives check");
+    //   }
+    // }
+    // if (m.captured != null) {
+    //   print("This move is a capture");
+    // }
     // Ensure async execution
-    await Future(() {});
+    // await Future(() {});
 
     final val = -await alphaBeta(c, depth - 1, -beta, -alpha, c.turn);
     c.undo();
@@ -277,6 +295,63 @@ Future<double> alphaBeta(
       alpha = val;
     }
   }
+  return alpha;
+}
+
+// Make alphaBeta async to avoid blocking execution
+Future<double> qSearch(
+    Chess c, int depth, double alpha, double beta, Color player) async {
+  // if (c.game_over) {
+
+  bool inCheck = c.in_check;
+
+  // final standPat = qPosition(c, c.turn);
+  final standPat = evaluatePosition(c, c.turn);
+
+  if (c.game_over) {
+    return standPat;
+  } else {
+    // return standPat;
+    if (standPat >= beta) return standPat;
+    if (standPat <= alpha) return standPat;
+  }
+
+  int movesFound = 0;
+
+  for (final m in c.moves({'asObjects': true}) as Iterable<Move>) {
+    bool problematicMove = false;
+    c.move(m);
+
+    // if (inCheck) {
+    //   problematicMove = true;
+    // } //else
+    if (m.captured != null) {
+      problematicMove = true;
+    }
+    // else
+    // if (c.in_check) {
+    //   problematicMove = true;
+    // }
+    if (!problematicMove) {
+      c.undo();
+      continue;
+    }
+    // // Ensure async execution
+    // await Future(() {});
+
+    final val = -await qSearch(c, depth - 1, -beta, -alpha, c.turn);
+    movesFound++;
+    c.undo();
+
+    if (val >= beta) {
+      return beta;
+    }
+    if (val > alpha) {
+      alpha = val;
+    }
+  }
+
+  if (movesFound == 0) return standPat;
   return alpha;
 }
 
@@ -326,6 +401,29 @@ double evaluatePosition(Chess c, Color player) {
 
     return evaluation;
   }
+}
+
+// simple material based evaluation
+double qPosition(Chess c, Color player) {
+  // otherwise do a simple material evaluation
+  var evaluation = 0.0;
+  var sq_color = 0;
+  for (var i = Chess.SQUARES_A8; i <= Chess.SQUARES_H1; i++) {
+    sq_color = (sq_color + 1) % 2;
+    if ((i & 0x88) != 0) {
+      i += 7;
+      continue;
+    }
+
+    final piece = c.board[i];
+    if (piece != null) {
+      evaluation += (piece.color == player)
+          ? pieceValues[piece.type]
+          : -pieceValues[piece.type];
+    }
+  }
+
+  return evaluation;
 }
 
 Future<void> main() async {
