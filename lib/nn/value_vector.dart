@@ -10,6 +10,10 @@ class ValueVector {
   factory ValueVector.fromFloat32List(Float32List data) {
     return ValueVector(List.generate(data.length, (i) => Value(data[i])));
   }
+  factory ValueVector.fromUint8List(Uint8List data) {
+    return ValueVector(
+        List.generate(data.length, (i) => Value(data[i].toDouble())));
+  }
   factory ValueVector.fromDoubleList(List<double> data) {
     return ValueVector(List.generate(data.length, (i) => Value(data[i])));
   }

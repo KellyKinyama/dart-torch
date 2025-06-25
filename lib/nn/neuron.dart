@@ -13,13 +13,12 @@ class Neuron extends Module {
 
   factory Neuron.fromWeights(int nin, {bool nonlin = true}) {
     final w = List<Value>.generate(
-        nin, (int index) => Value(math.Random().nextDouble()),
+        nin,
+        (int index) => Value(
+            math.Random().nextDouble() * 0.1), // Example: small random values
         growable: false);
 
-    /// print(fixedLengthList); // [0, 1, 4]
-
-    Value b = Value(0.5);
-
+    Value b = Value(0.0); // Often good to initialize biases to 0
     return Neuron(ValueVector(w), b: b, nonlin: true);
   }
 

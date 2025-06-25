@@ -78,9 +78,22 @@ void main() async {
   print('First label: ${mnist.labels[0]}');
 
   final firstImage = mnist.images[0];
+  print("Image bytes: $firstImage");
+  // for (int row = 0; row < 28; row++) {
+  //   for (int col = 0; col < 28; col++) {
+  //     final pixel = firstImage[row * 28 + col];
+  //     stdout.write(pixel > 128 ? '█' : ' ');
+  //   }
+  //   print('');
+  // }
+
+  printImage(firstImage);
+}
+
+void printImage(Uint8List image) {
   for (int row = 0; row < 28; row++) {
     for (int col = 0; col < 28; col++) {
-      final pixel = firstImage[row * 28 + col];
+      final pixel = image[row * 28 + col];
       stdout.write(pixel > 128 ? '█' : ' ');
     }
     print('');
