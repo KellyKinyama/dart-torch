@@ -74,7 +74,7 @@ class ValueVector {
     Value loss = Value(0.0);
 
     for (int i = 0; i < values.length; i++) {
-      loss += -target.values[i].data * (values[i].log().data);
+      loss += (-target.values[i]) * (values[i].log());
     }
     return loss;
   }

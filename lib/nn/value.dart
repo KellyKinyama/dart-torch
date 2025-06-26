@@ -68,7 +68,7 @@ class Value {
   Value relu() {
     final out = Value(data < 0 ? 0.0 : data, {this}, 'ReLU');
     out._backward = () {
-      grad += (out.data > 0 ? 1.0 : 0.0) * out.grad;
+      grad += (out.data > 0.0 ? 1.0 : 0.0) * out.grad;
     };
 
     return out;

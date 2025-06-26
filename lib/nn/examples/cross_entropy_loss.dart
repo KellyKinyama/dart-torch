@@ -30,12 +30,12 @@ class MultiLayerPerceptron extends Module {
 
   ValueVector forward(ValueVector x) {
     final out = inputLayer.forward(x);
-    final activated = out.sigmoid();
+    final activated = out.reLU();
     activatedValues = activated;
     // print("input Layer neurons length: ${out.values.length}");
     final out2 = hiddenLayer.forward(activated);
 
-    final activatedOut2 = out2.sigmoid();
+    final activatedOut2 = out2.softmax();
     activatedOut = activatedOut2;
     // print("Output: $out2");
     return activatedOut2;
@@ -46,11 +46,13 @@ class MultiLayerPerceptron extends Module {
     final List<Value> params = [];
     // for (Neuron neuron in inputLayer) {
     params.addAll(inputLayer.parameters());
-    // if (activatedValues != null)
-    params.addAll(activatedValues!.values);
+    // if (activatedValues != null) {
+    //   params.addAll(activatedValues!.values);
+    // }
     params.addAll(hiddenLayer.parameters());
-    // if (activatedOut != null)
-    params.addAll(activatedOut!.values);
+    // if (activatedOut != null) {
+    //   params.addAll(activatedOut!.values);
+    // }
     // }
     // TODO: implement parameters
     return params;
@@ -73,7 +75,7 @@ class MultiLayerPerceptron extends Module {
 }
 
 void main() {
-  const lr = 0.05;
+  const lr = 0.008;
   final model = MultiLayerPerceptron(lr); // 4 inputs → 2 outputs
   print("Image bytes legnt: ${imgBytes.length}"); // 784 bytes
   final inputs = [
@@ -90,8 +92,8 @@ void main() {
       Value(0.0),
       Value(0.0),
       Value(0.0),
-      Value(1.0),
       Value(0.0),
+      Value(1.0),
       Value(0.0),
       Value(0.0),
       Value(0.0),
@@ -102,8 +104,8 @@ void main() {
       Value(0.0),
       Value(0.0),
       Value(0.0),
-      Value(1.0),
       Value(0.0),
+      Value(1.0),
       Value(0.0),
       Value(0.0),
       Value(0.0),
@@ -114,8 +116,8 @@ void main() {
       Value(0.0),
       Value(0.0),
       Value(0.0),
-      Value(1.0),
       Value(0.0),
+      Value(1.0),
       Value(0.0),
       Value(0.0),
       Value(0.0),
@@ -123,7 +125,7 @@ void main() {
     ])
   ];
 
-  const epochs = 100000;
+  const epochs = 400;
 
   for (int epoch = 0; epoch < epochs; epoch++) {
     final losses = <Value>[];
@@ -134,9 +136,10 @@ void main() {
     for (int i = 0; i < inputs.length; i++) {
       final yPred = model.forward(inputs[i]);
       final yTrue = targets[i];
-      final diff = yPred - yTrue;
-      final squared = diff.squared();
-      final sampleLoss = squared.mean();
+
+      // Use crossEntropy instead of squared error
+      final sampleLoss = yPred
+          .crossEntropy(yTrue); // Assuming yPred and yTrue are ValueVectors
       losses.add(sampleLoss);
     }
 
