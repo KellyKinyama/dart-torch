@@ -75,7 +75,7 @@ class MultiLayerPerceptron extends Module {
 }
 
 void main() {
-  const lr = 0.02;
+  const lr = 0.01;
   final model = MultiLayerPerceptron(lr); // 4 inputs → 2 outputs
   print("Image bytes legnt: ${imgBytes.length}"); // 784 bytes
   final inputs = [

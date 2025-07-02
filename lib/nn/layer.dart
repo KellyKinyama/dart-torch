@@ -1,5 +1,5 @@
 import 'module.dart';
-import 'neuron2.dart';
+import 'neuron.dart';
 import 'value.dart';
 import 'value_vector.dart';
 

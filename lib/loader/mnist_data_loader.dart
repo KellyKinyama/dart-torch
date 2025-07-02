@@ -59,7 +59,7 @@ class MNISTDataset {
   }
 }
 
-List<Float32List> normalizeImages(List<Uint8List> images) {
+List<List<double>> normalizeImages(List<Uint8List> images) {
   return images.map((img) {
     return Float32List.fromList(img.map((px) => px / 255.0).toList());
   }).toList();

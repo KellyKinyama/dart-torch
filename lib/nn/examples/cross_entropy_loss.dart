@@ -30,7 +30,7 @@ class MultiLayerPerceptron extends Module {
 
   ValueVector forward(ValueVector x) {
     final out = inputLayer.forward(x);
-    final activated = out.reLU();
+    final activated = out.sigmoid();
     activatedValues = activated;
     // print("input Layer neurons length: ${out.values.length}");
     final out2 = hiddenLayer.forward(activated);
