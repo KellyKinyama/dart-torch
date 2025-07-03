@@ -6,7 +6,6 @@ import '/nn/layer.dart';
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
 import '../transformer2/transformer_encoder2.dart'; // The encoder you already have
-import '../transformer2/layer_norm2.dart'; // For the final layer norm if needed
 
 /// A Vision Transformer (ViT) backbone for extracting image features.
 ///

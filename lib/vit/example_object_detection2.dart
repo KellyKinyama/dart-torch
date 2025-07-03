@@ -22,9 +22,7 @@ class SGD {
 
   void step() {
     for (final p in parameters) {
-      if (p.grad != null) {
-        p.data -= learningRate * p.grad!;
-      }
+      p.data -= learningRate * p.grad;
     }
   }
 

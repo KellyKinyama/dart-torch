@@ -2,11 +2,9 @@ import 'dart:math';
 import 'transformer.dart';
 import 'self_attention.dart';
 import 'multi_head_attention.dart';
-import 'feed_forward.dart';
 import 'layer_norm2.dart'; // Using the more concise LayerNorm
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
-import '/nn/layer.dart';
 import 'value_matrix.dart'; // For matrix operations if needed
 
 /// A simple Stochastic Gradient Descent (SGD) optimizer.

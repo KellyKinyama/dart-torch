@@ -1,6 +1,5 @@
 // file: layer_norm.dart
 
-import 'dart:math'; // Epsilon may need math.sqrt
 import '/nn/module.dart';
 import '/nn/value.dart';
 import '/nn/value_vector.dart';

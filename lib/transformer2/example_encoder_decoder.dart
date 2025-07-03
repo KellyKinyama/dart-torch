@@ -3,7 +3,6 @@
 import 'encoder_decoder_transformer.dart';
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
-import 'dart:math';
 
 // Re-using SGD from previous examples
 class SGD {

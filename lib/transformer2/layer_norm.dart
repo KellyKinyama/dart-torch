@@ -1,5 +1,4 @@
 // layer_norm.dart
-import 'dart:math' as math;
 import '/nn/module.dart';
 import '/nn/value.dart';
 import '/nn/value_vector.dart';

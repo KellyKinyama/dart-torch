@@ -4,7 +4,6 @@ import 'dart:math' as math;
 import '/nn/module.dart';
 import 'transformer_encoder_block.dart';
 import 'layer_norm2.dart';
-import '/nn/layer.dart';
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
 

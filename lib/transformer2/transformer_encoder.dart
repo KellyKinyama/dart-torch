@@ -4,7 +4,6 @@ import 'dart:math' as math;
 import '/nn/module.dart';
 import 'transformer_encoder_block.dart'; // Import the new encoder block
 import 'layer_norm2.dart';
-import '/nn/layer.dart'; // Though not directly used for output, useful if you extend it
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
 
@@ -70,9 +69,9 @@ class TransformerEncoder extends Module {
     // 1. Get token and position embeddings and sum them
     // Each input token is converted into an embedding, and positional information is added.
     var x = List.generate(T, (t) {
-      final tok_emb = tokenEmbeddings[idx[t]];
-      final pos_emb = positionEmbeddings[t];
-      return tok_emb + pos_emb;
+      final tokEmb = tokenEmbeddings[idx[t]];
+      final posEmb = positionEmbeddings[t];
+      return tokEmb + posEmb;
     });
 
     // 2. Pass the sequence through all Transformer Encoder blocks

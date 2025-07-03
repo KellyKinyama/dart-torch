@@ -6,7 +6,6 @@ import '/nn/layer.dart';
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
 import '../transformer2/transformer_encoder2.dart'; // The encoder you already have
-import '../transformer2/layer_norm2.dart'; // For the final layer norm if needed
 
 /// A Vision Transformer (ViT) model for image classification.
 ///
@@ -89,7 +88,7 @@ class VisionTransformer extends Module {
     }
 
     final numPatchesPerRow = imageSize ~/ patchSize;
-    final numTotalPatches = numPatchesPerRow * numPatchesPerRow;
+    // final numTotalPatches = numPatchesPerRow * numPatchesPerRow;
     final patchPixelCount = patchSize * patchSize * numChannels;
 
     final List<ValueVector> patchEmbeddings = [];
@@ -107,9 +106,9 @@ class VisionTransformer extends Module {
               // Iterate through columns within patch
               final originalPixelX = patchX * patchSize + x;
               final originalPixelY = patchY * patchSize + y;
-              final flatIndex = c * imageSize * imageSize +
-                  originalPixelY * imageSize +
-                  originalPixelX; // Assuming channel-first flattening if any
+              // final flatIndex = c * imageSize * imageSize +
+              //     originalPixelY * imageSize +
+              //     originalPixelX; // Assuming channel-first flattening if any
 
               // If image data is already flat (e.g., all R then all G then all B for C*H*W)
               // you need to adjust this index calculation to match your input flattening.
@@ -131,7 +130,7 @@ class VisionTransformer extends Module {
         // Ensure the patch has the expected number of pixels
         if (currentPatchPixels.length != patchPixelCount) {
           throw StateError(
-              "Extracted patch pixel count (${currentPatchPixels.length}) does not match expected (${patchPixelCount}).");
+              "Extracted patch pixel count (${currentPatchPixels.length}) does not match expected ($patchPixelCount).");
         }
 
         final patchVector = ValueVector.fromDoubleList(currentPatchPixels);

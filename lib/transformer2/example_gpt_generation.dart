@@ -1,12 +1,8 @@
 // file: example_gpt_generation.dart
 
-import 'dart:math';
-
 // Import your core Value and Module system
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
-import '/nn/module.dart';
-import '/nn/layer.dart'; // Assuming your Layer is in nn/layer.dart
 
 // Import your TransformerDecoder
 import 'transformer_decoder.dart'; // Your existing TransformerDecoder
@@ -19,8 +15,6 @@ import 'transformer_decoder.dart'; // Your existing TransformerDecoder
 // TransformerDecoderBlock's forward method.
 // A more accurate GPT would involve modifying transformer_decoder_block.dart
 // to either remove MultiHeadCrossAttention or make it conditional.
-import 'multi_head_cross_attention.dart'; // Needed due to current TransformerDecoderBlock
-import 'cross_attention.dart'; // Needed due to current TransformerDecoderBlock
 
 void main() {
   print("--- Generative Pretrained Transformer (GPT) Example ---");

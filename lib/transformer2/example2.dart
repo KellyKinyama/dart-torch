@@ -1,6 +1,5 @@
 // file: example.dart
 
-import 'dart:math';
 import 'transformer.dart';
 import '/nn/value.dart';
 import '/nn/value_vector.dart';

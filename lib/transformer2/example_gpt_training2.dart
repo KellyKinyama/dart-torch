@@ -1,13 +1,9 @@
 // file: example_gpt_training.dart
 
-import 'dart:math';
 
 // Import your core Value and Module system
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
-import '/nn/module.dart';
-import '/nn/layer.dart'; // Assuming your Layer is in nn/layer.dart
-
 // Import your TransformerDecoder
 import 'transformer_decoder.dart'; // Your existing TransformerDecoder
 // Ensure all sub-modules of TransformerDecoder are accessible:
@@ -25,10 +21,8 @@ class SGD {
   void step() {
     for (final p in parameters) {
       // Only update if gradient exists
-      if (p.grad != null) {
-        p.data -= learningRate * p.grad!;
-      }
-    }
+      p.data -= learningRate * p.grad;
+        }
   }
 
   void zeroGrad() {

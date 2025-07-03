@@ -5,12 +5,8 @@ import 'dart:math';
 // Import your core Value and Module system
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
-import '/nn/module.dart';
-import '/nn/layer.dart';
 
 // Import your new object detection components
-import 'vit_backbone.dart'; // Your modified ViT backbone
-import 'object_detection_head.dart'; // Your new detection head
 import 'object_detector2.dart'; // Your combined detector
 
 // Re-using a simple SGD optimizer
@@ -22,9 +18,7 @@ class SGD {
 
   void step() {
     for (final p in parameters) {
-      if (p.grad != null) {
-        p.data -= learningRate * p.grad!;
-      }
+      p.data -= learningRate * p.grad;
     }
   }
 
