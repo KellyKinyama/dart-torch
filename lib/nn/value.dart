@@ -29,6 +29,21 @@ class Value {
     return out;
   }
 
+  /// Returns the absolute value of this Value.
+  Value abs() {
+    final out = Value(data.abs(), {this}, 'abs');
+    out._backward = () {
+      // Derivative of abs(x) is sign(x) for x != 0, and typically 0 at x = 0.
+      if (data > 0) {
+        grad += out.grad; // If data is positive, derivative is +1
+      } else if (data < 0) {
+        grad -= out.grad; // If data is negative, derivative is -1
+      }
+      // If data is 0, grad remains unchanged (derivative is undefined/0)
+    };
+    return out;
+  }
+
   Value operator *(dynamic other) {
     final o = Value.toValue(other);
     final out = Value(data * o.data, {this, o}, '*');

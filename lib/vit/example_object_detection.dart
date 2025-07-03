@@ -103,7 +103,7 @@ void main() {
     // a. Bounding Box Loss (L1 Loss)
     Value bboxLoss = Value(0.0);
     for (int i = 0; i < 4; i++) {
-      bboxLoss += (predictedBbox.values[i] - Value(gtBboxCoords[i]));
+      bboxLoss += (predictedBbox.values[i] - Value(gtBboxCoords[i])).abs();
     }
     bboxLoss = bboxLoss / Value(4.0); // Average L1 loss
 
@@ -123,7 +123,7 @@ void main() {
     totalLoss.backward(); // Compute gradients
     optimizer.step(); // Update parameters
 
-    if (epoch % 1 == 0 || epoch == epochs - 1) {
+    if (epoch % 5 == 0 || epoch == epochs - 1) {
       print("Epoch $epoch | Total Loss: ${totalLoss.data.toStringAsFixed(4)} "
           "(Bbox Loss: ${bboxLoss.data.toStringAsFixed(4)}, "
           "Class Loss: ${classLoss.data.toStringAsFixed(4)})");
