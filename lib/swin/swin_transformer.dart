@@ -5,7 +5,7 @@ import 'patch_embedding.dart';
 import 'swin_stage.dart';
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
-import '../transformer2/layer_norm2.dart'; // Assuming layer_norm2.dart contains LayerNorm
+import '../transformer/layer_norm2.dart'; // Assuming layer_norm2.dart contains LayerNorm
 
 /// The full Swin Transformer model for computer vision tasks.
 class SwinTransformer extends Module {

@@ -2,8 +2,8 @@
 
 import '/nn/module.dart';
 import 'window_attention.dart'; // For W-MSA and SW-MSA
-import '../transformer2/feed_forward.dart'; // Re-use FeedForward
-import '../transformer2/layer_norm2.dart'; // Re-use LayerNorm
+import '../transformer/feed_forward.dart'; // Re-use FeedForward
+import '../transformer/layer_norm2.dart'; // Re-use LayerNorm
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
 

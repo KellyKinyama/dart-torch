@@ -5,7 +5,7 @@ import '/nn/module.dart';
 import '/nn/layer.dart';
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
-import '../transformer2/transformer_encoder2.dart'; // Your TransformerEncoder
+import '../transformer/transformer_encoder2.dart'; // Your TransformerEncoder
 
 // --- Chess-specific constants (Simplified) ---
 // These define how pieces are mapped to integers and board dimensions.

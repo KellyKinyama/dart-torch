@@ -12,8 +12,8 @@ import '/nn/layer.dart'; // Assuming you have a basic Layer (linear)
 import 'patch_embedding.dart';
 import 'patch_merging.dart';
 import 'window_attention.dart';
-import '../transformer2/feed_forward.dart'; // Re-used from your existing FFN
-import '../transformer2/layer_norm2.dart'; // Re-used from your existing LayerNorm
+import '../transformer/feed_forward.dart'; // Re-used from your existing FFN
+import '../transformer/layer_norm2.dart'; // Re-used from your existing LayerNorm
 import 'swin_transformer_block.dart';
 import 'swin_stage.dart';
 import 'swin_transformer.dart';

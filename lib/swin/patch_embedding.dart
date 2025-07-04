@@ -4,7 +4,7 @@ import '/nn/module.dart';
 import '/nn/layer.dart';
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
-import '../transformer2/layer_norm2.dart'; // Assuming layer_norm2.dart contains LayerNorm
+import '../transformer/layer_norm2.dart'; // Assuming layer_norm2.dart contains LayerNorm
 
 /// Converts an image into a sequence of patch embeddings.
 class PatchEmbedding extends Module {

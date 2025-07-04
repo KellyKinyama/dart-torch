@@ -1,7 +1,7 @@
 // In a new file: window_attention.dart
 
 import '/nn/module.dart';
-import '../transformer2/multi_head_attention.dart'; // Re-use MultiHeadAttention
+import '../transformer/multi_head_attention.dart'; // Re-use MultiHeadAttention
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
 

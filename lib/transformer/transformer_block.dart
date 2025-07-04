@@ -1,45 +1,50 @@
-// import 'encoder.dart';
-import 'linear_layer.dart';
-import 'layer_norm.dart';
-import '../nn/value_vector.dart';
-import 'multi_head_attention.dart';
+// file: transformer_block.dart
 
-class TransformerBlock {
+import '/nn/module.dart';
+import 'multi_head_attention.dart';
+import 'feed_forward.dart';
+import 'layer_norm2.dart';
+import '/nn/value.dart';
+import '/nn/value_vector.dart';
+
+/// A single Transformer block, which combines attention and feed-forward layers.
+class TransformerBlock extends Module {
   final MultiHeadAttention attention;
-  final LinearLayer ff1;
-  final LinearLayer ff2;
+  final FeedForward ffn;
   final LayerNorm ln1;
   final LayerNorm ln2;
+  final int embedSize;
 
-  TransformerBlock(int embedDim, int numHeads, int ffDim)
-      : attention = MultiHeadAttention(embedDim, numHeads),
-        ff1 = LinearLayer(embedDim, ffDim),
-        ff2 = LinearLayer(ffDim, embedDim),
-        ln1 = LayerNorm(embedDim),
-        ln2 = LayerNorm(embedDim);
+  TransformerBlock(this.embedSize, int numHeads, {bool masked = false})
+      : attention = MultiHeadAttention(numHeads, embedSize, masked: masked),
+        ffn = FeedForward(embedSize),
+        ln1 = LayerNorm(embedSize),
+        ln2 = LayerNorm(embedSize);
 
+  /// The forward pass through a single Transformer block.
   List<ValueVector> forward(List<ValueVector> x) {
-    // Normalize input before attention
-    final normX = x.map((v) => ln1.forward(v)).toList();
+    final T = x.length;
 
-    // Self-attention
-    final attnOut = attention.forward(normX);
+    // 1. First sub-layer: Multi-Head Attention with pre-normalization and residual connection
+    final x_norm1 = List.generate(T, (i) => ln1.forward(x[i]));
+    final attn_out = attention.forward(x_norm1);
+    final x_res1 = List.generate(T, (i) => x[i] + attn_out[i]);
 
-    // Residual connection + normalization
-    final x1 = List.generate(x.length, (i) => x[i] + attnOut[i]);
-    final normX1 = x1.map((v) => ln2.forward(v)).toList();
+    // 2. Second sub-layer: Feed-Forward with pre-normalization and residual connection
+    final x_norm2 = List.generate(T, (i) => ln2.forward(x_res1[i]));
+    final ffn_out = List.generate(T, (i) => ffn.forward(x_norm2[i]));
+    final out = List.generate(T, (i) => x_res1[i] + ffn_out[i]);
 
-    // Feed-forward network
-    final List<ValueVector> ffOut = [];
-    for (final vec in normX1) {
-      final ff = ff2.forward(ff1.forward(vec).reLU());
-      ffOut.add(ff);
-    }
-
-    // Second residual connection
-    return List.generate(x.length, (i) => x1[i] + ffOut[i]);
+    return out;
   }
 
   @override
-  String toString() => 'TransformerBlock()';
+  List<Value> parameters() {
+    return [
+      ...attention.parameters(),
+      ...ffn.parameters(),
+      ...ln1.parameters(),
+      ...ln2.parameters(),
+    ];
+  }
 }

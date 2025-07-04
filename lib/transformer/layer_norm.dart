@@ -1,29 +1,55 @@
-import '../nn/value.dart';
-import '../nn/value_vector.dart';
+// layer_norm.dart
+import '/nn/module.dart';
+import '/nn/value.dart';
+import '/nn/value_vector.dart';
 
-import 'dart:math';
-class LayerNorm {
-  final int size;
-  final double eps;
-  final List<Value> gamma;
-  final List<Value> beta;
+class LayerNormalization extends Module {
+  final int features;
+  Value gamma; // Learnable scale parameter
+  Value beta; // Learnable shift parameter
+  final double epsilon;
 
-  LayerNorm(this.size, {this.eps = 1e-5})
-      : gamma = List.generate(size, (_) => Value(1.0)),
-        beta = List.generate(size, (_) => Value(0.0));
+  LayerNormalization(this.features, {this.epsilon = 1e-5})
+      : gamma = Value(1.0), // Typically initialized to 1
+        beta = Value(0.0), // Typically initialized to 0
+        super();
 
-  ValueVector forward(ValueVector x) {
-    final mean = x.values.reduce((a, b) => a + b) / size.toDouble();
-    final centered = x - ValueVector(List.generate(size, (_) => mean));
-    final variance = centered.values.map((v) => v * v).reduce((a, b) => a + b) / size.toDouble();
-    final std = (variance + Value(eps)).sqrt();
+  @override
+  List<Value> parameters() {
+    return [gamma, beta];
+  }
 
-    final normalized = ValueVector([
-      for (int i = 0; i < size; i++) (x.values[i] - mean) / std
-    ]);
+  ValueVector forward(ValueVector input) {
+    if (input.values.length != features) {
+      throw ArgumentError(
+          "Input vector size (${input.values.length}) must match features ($features)");
+    }
 
-    return ValueVector([
-      for (int i = 0; i < size; i++) normalized.values[i] * gamma[i] + beta[i]
-    ]);
+    // Calculate mean
+    Value sum = input.values.reduce((a, b) => a + b);
+    Value mean = sum / Value(features.toDouble());
+
+    // Calculate variance (using data, not Value objects for intermediate step to avoid graph explosion)
+    // For proper backprop, these intermediate operations should also create Value objects
+    // This is a simplification; a full implementation would build these into the computational graph.
+    Value varianceSum = Value(0.0);
+    for (Value val in input.values) {
+      varianceSum += (val - mean).pow(2);
+    }
+    Value variance = varianceSum / Value(features.toDouble());
+
+    // Normalized input
+    List<Value> normalizedValues = [];
+    for (Value val in input.values) {
+      normalizedValues.add((val - mean) / (variance + Value(epsilon)).sqrt());
+    }
+    ValueVector normalizedInput = ValueVector(normalizedValues);
+
+    // Apply learned scale and shift
+    List<Value> outputValues = [];
+    for (Value val in normalizedInput.values) {
+      outputValues.add(gamma * val + beta);
+    }
+    return ValueVector(outputValues);
   }
 }

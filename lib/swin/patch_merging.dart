@@ -4,7 +4,7 @@ import '/nn/module.dart';
 import '/nn/layer.dart';
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
-import '../transformer2/layer_norm2.dart'; // Assuming layer_norm2.dart contains LayerNorm
+import '../transformer/layer_norm2.dart'; // Assuming layer_norm2.dart contains LayerNorm
 
 /// Merges 2x2 neighboring patches to reduce spatial resolution and increase feature dimension.
 class PatchMerging extends Module {
