@@ -44,6 +44,23 @@ class Value {
     return out;
   }
 
+  Value clamp(Value minVal, Value maxVal) {
+    final clamped = Value(
+        data.clamp(minVal.data, maxVal.data).toDouble(),
+        {
+          this,
+          minVal,
+          maxVal,
+        },
+        'clamp');
+    clamped._backward = () {
+      if (data >= minVal.data && data <= maxVal.data) {
+        grad += clamped.grad;
+      }
+    };
+    return clamped;
+  }
+
   Value operator *(dynamic other) {
     final o = Value.toValue(other);
     final out = Value(data * o.data, {this, o}, '*');

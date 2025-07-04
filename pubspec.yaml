@@ -1,6 +1,6 @@
 name: dart_torch
 description: This library focuses on providing core building blocks for neural networks, including automatic differentiation, and components for Transformer architectures.
-version: 1.0.0
+version: 1.0.1
 repository: https://github.com/KellyKinyama/dart-torch
 
 environment:
