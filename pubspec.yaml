@@ -1,7 +1,7 @@
 name: dart_torch
-description: A sample command-line application.
+description: This library focuses on providing core building blocks for neural networks, including automatic differentiation (Value class), basic layers (Neuron, Layer), and components for Transformer architectures.
 version: 1.0.0
-# repository: https://github.com/my_org/my_repo
+repository: https://github.com/KellyKinyama/dart-torch
 
 environment:
   sdk: ^3.6.2
