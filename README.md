@@ -369,7 +369,6 @@ import 'network_utils.dart';
 // ... create your model ...
 await saveModuleParameters(myModel, 'my_model_weights.json');
 
-
 Future<void> loadModuleParameters(Module module, String filePath)
 
 Purpose: Loads parameters (weights) from a JSON file and updates the data values of the corresponding Value objects within a given Module.
@@ -389,7 +388,6 @@ Usage:
 import 'network_utils.dart';
 // ... create a new model instance with the same architecture ...
 await loadModuleParameters(newModel, 'my_model_weights.json');
-
 
 6. Training Considerations
 When training deep neural networks, especially those employing ReLU activation functions, certain practices are crucial for stable and effective learning.
