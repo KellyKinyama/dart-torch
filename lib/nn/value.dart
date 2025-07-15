@@ -228,8 +228,11 @@ class Value {
 
   void setData(double newData) => data = newData;
 
+  // @override
+  // String toString() => 'Value(data=$data, grad=$grad, op=$_op)';
+
   @override
-  String toString() => 'Value(data=$data, grad=$grad, op=$_op)';
+  String toString() => '$data';
 
   static Value toValue(dynamic x) => x is Value ? x : Value(x.toDouble());
 }
