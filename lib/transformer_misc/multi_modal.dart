@@ -37,14 +37,16 @@ class MultimodalTransformer extends Module {
   final AudioTransformer audioModel;
   final VideoTransformer videoModel;
   final Layer multimodalMlpHead;
-  final int multimodalNumClasses; // Number of output classes for the combined task
+  final int
+      multimodalNumClasses; // Number of output classes for the combined task
 
   MultimodalTransformer({
     required this.audioModel,
     required this.videoModel,
     required this.multimodalNumClasses,
   }) : multimodalMlpHead = Layer.fromNeurons(
-          audioModel.embedSize + videoModel.embedSize, // Sum of feature dimensions
+          audioModel.embedSize +
+              videoModel.embedSize, // Sum of feature dimensions
           multimodalNumClasses,
         );
 
@@ -61,8 +63,9 @@ class MultimodalTransformer extends Module {
           "Audio sequence length (${audioFeatures.length}) exceeds "
           "maxAudioSequenceLength (${audioModel.maxAudioSequenceLength}).");
     }
-    final embeddedAudioFeatures =
-        audioFeatures.map((f) => audioModel.featureProjection.forward(f)).toList();
+    final embeddedAudioFeatures = audioFeatures
+        .map((f) => audioModel.featureProjection.forward(f))
+        .toList();
     final audioSequenceWithPositionalEmbeddings =
         List.generate(embeddedAudioFeatures.length, (i) {
       return embeddedAudioFeatures[i] + audioModel.positionEmbeddings[i];
@@ -71,7 +74,8 @@ class MultimodalTransformer extends Module {
         .forwardEmbeddings(audioSequenceWithPositionalEmbeddings);
     ValueVector pooledAudioFeature;
     if (encodedAudioFeatures.isEmpty) {
-      pooledAudioFeature = ValueVector(List.filled(audioModel.embedSize, Value(0.0)));
+      pooledAudioFeature =
+          ValueVector(List.filled(audioModel.embedSize, Value(0.0)));
     } else {
       pooledAudioFeature = encodedAudioFeatures.reduce((a, b) => a + b) /
           Value(encodedAudioFeatures.length.toDouble());
@@ -85,7 +89,9 @@ class MultimodalTransformer extends Module {
           "maxVideoSequenceLength (${videoModel.maxVideoSequenceLength}).");
     }
     final projectedVideoEmbeddings = videoModel.frameProjection != null
-        ? videoEmbeddings.map((e) => videoModel.frameProjection!.forward(e)).toList()
+        ? videoEmbeddings
+            .map((e) => videoModel.frameProjection!.forward(e))
+            .toList()
         : videoEmbeddings;
     final videoSequenceWithPositionalEmbeddings =
         List.generate(projectedVideoEmbeddings.length, (i) {
@@ -95,7 +101,8 @@ class MultimodalTransformer extends Module {
         .forwardEmbeddings(videoSequenceWithPositionalEmbeddings);
     ValueVector pooledVideoFeature;
     if (encodedVideoFeatures.isEmpty) {
-      pooledVideoFeature = ValueVector(List.filled(videoModel.embedSize, Value(0.0)));
+      pooledVideoFeature =
+          ValueVector(List.filled(videoModel.embedSize, Value(0.0)));
     } else {
       pooledVideoFeature = encodedVideoFeatures.reduce((a, b) => a + b) /
           Value(encodedVideoFeatures.length.toDouble());
@@ -108,7 +115,8 @@ class MultimodalTransformer extends Module {
     // Pass the combined feature through the multimodal classification head
     final logits = multimodalMlpHead.forward(combinedFeature);
 
-    return logits.values; // Return a list of Value objects for a single prediction
+    return logits
+        .values; // Return a list of Value objects for a single prediction
   }
 
   @override
@@ -155,7 +163,8 @@ void main() {
     featureDim: audioFeatureDim,
     embedSize: audioEmbedSize,
     maxAudioSequenceLength: maxAudioSequenceLength,
-    numClasses: audioNumClasses, // These classes are for the *individual* audio task
+    numClasses:
+        audioNumClasses, // These classes are for the *individual* audio task
     numLayers: 1,
     numHeads: 2,
   );
@@ -163,7 +172,8 @@ void main() {
     frameEmbedDim: frameEmbedDim,
     embedSize: videoEmbedSize,
     maxVideoSequenceLength: maxVideoSequenceLength,
-    numClasses: videoNumClasses, // These classes are for the *individual* video task
+    numClasses:
+        videoNumClasses, // These classes are for the *individual* video task
     numLayers: 1,
     numHeads: 2,
   );
@@ -194,8 +204,10 @@ void main() {
 
   // Simplified Multimodal Training Loop
   print("\nTraining Multimodal Transformer...");
-  for (int epoch = 0; epoch < 50; epoch++) { // Increased epochs for multimodal example
-    final logits = multimodalModel.forward(dummyAudioFeatures, dummyVideoEmbeddings);
+  for (int epoch = 0; epoch < 50; epoch++) {
+    // Increased epochs for multimodal example
+    final logits =
+        multimodalModel.forward(dummyAudioFeatures, dummyVideoEmbeddings);
     final targetVector = ValueVector(List.generate(
       multimodalNumClasses,
       (i) => Value(i == dummyMultimodalTargetClass ? 1.0 : 0.0),
@@ -207,7 +219,7 @@ void main() {
     loss.backward();
     multimodalOptimizer.step();
 
-    if (epoch % 10 == 0 || epoch == 49) {
+    if (epoch % 1 == 0 || epoch == 49) {
       print("Multimodal Epoch $epoch | Loss: ${loss.data.toStringAsFixed(4)}");
     }
   }
@@ -224,9 +236,10 @@ void main() {
       (i) => ValueVector.fromDoubleList(
           List.generate(frameEmbedDim, (j) => random.nextDouble())));
 
-  final multimodalInferenceLogits = multimodalModel.forward(
-      newDummyAudioFeatures, newDummyVideoEmbeddings);
-  final multimodalPredictedProbs = ValueVector(multimodalInferenceLogits).softmax();
+  final multimodalInferenceLogits =
+      multimodalModel.forward(newDummyAudioFeatures, newDummyVideoEmbeddings);
+  final multimodalPredictedProbs =
+      ValueVector(multimodalInferenceLogits).softmax();
   int multimodalPredictedClass = multimodalPredictedProbs.values
       .asMap()
       .entries
@@ -235,8 +248,7 @@ void main() {
   print(
       "Multimodal Predicted Class: $multimodalPredictedClass (Prob: ${multimodalPredictedProbs.values[multimodalPredictedClass].data.toStringAsFixed(4)})");
 
-  print(
-      "\nNote: This example demonstrates a basic intermediate fusion. "
+  print("\nNote: This example demonstrates a basic intermediate fusion. "
       "Real-world multimodal models often involve more complex fusion mechanisms (e.g., cross-attention) "
       "and larger datasets for effective learning.");
 }
