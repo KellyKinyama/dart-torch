@@ -1,6 +1,5 @@
 // file: example_gpt_training.dart
 
-
 // Import your core Value and Module system
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
@@ -22,7 +21,7 @@ class SGD {
     for (final p in parameters) {
       // Only update if gradient exists
       p.data -= learningRate * p.grad;
-        }
+    }
   }
 
   void zeroGrad() {
@@ -222,7 +221,7 @@ void main() {
   );
 
   // 6. Training Loop
-  const int numEpochs = 1000; // Increased epochs for more complex data
+  const int numEpochs = 100; // Increased epochs for more complex data
   print("\n--- Starting Training ---");
 
   for (int epoch = 0; epoch < numEpochs; epoch++) {
@@ -266,7 +265,7 @@ void main() {
       optimizer.step();
     }
 
-    if ((epoch + 1) % 100 == 0 || epoch == 0) {
+    if ((epoch + 1) % 1 == 0 || epoch == 0) {
       // Print less frequently for more epochs
       print(
           "Epoch ${epoch + 1}/${numEpochs}, Loss: ${totalLoss / trainInputs.length}");
