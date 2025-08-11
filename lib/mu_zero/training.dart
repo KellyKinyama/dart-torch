@@ -1,5 +1,6 @@
 // file: training.dart
 
+import '../nn/value.dart';
 import 'muzero_model.dart';
 import 'mcts.dart';
 
@@ -9,6 +10,20 @@ class GameReplay {
   // - List of actions taken
   // - The final outcome (e.g., +1 for white win, -1 for black win)
   // - List of MCTS policies for each move
+}
+
+class SGD {
+  final List<Value> parameters;
+  final double learningRate;
+
+  SGD(this.parameters, this.learningRate);
+
+  /// Updates each parameter using its calculated gradient.
+  void step() {
+    for (final p in parameters) {
+      p.data -= learningRate * p.grad;
+    }
+  }
 }
 
 class ReplayBuffer {

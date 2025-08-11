@@ -1,13 +1,13 @@
 // file: muzero_model.dart
 
 import 'dart:math' as math;
-import '../transformer/transformer_encoder.dart';
+import '../transformer/transformer_encoder2.dart';
 import '../transformer_misc/chess_transformer.dart';
 import '/nn/module.dart';
 import '/nn/layer.dart';
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
-import 'chess_transformer.dart'; // We'll borrow concepts from here
+// import 'chess_transformer.dart'; // We'll borrow concepts from here
 
 // A container for the output of the dynamics function (g)
 class DynamicsOutput {
@@ -33,7 +33,7 @@ class MuZeroNet extends Module {
   final TransformerEncoder sharedEncoder;
   final List<ValueVector> pieceEmbeddings;
   final List<ValueVector> squarePositionalEmbeddings;
-  
+
   // --- Specialized "Heads" ---
   // Head for predicting policy (move probabilities)
   final Layer policyHead;
@@ -44,23 +44,29 @@ class MuZeroNet extends Module {
   // A network to process state + action for the dynamics function
   final Layer dynamicsStateActionProcessor;
 
-
-  MuZeroNet({required this.embedSize, /* ... */})
-      : // TODO: Initialize all embeddings and layers.
+  MuZeroNet({
+    required this.embedSize,
+    /* ... */
+  })  : // TODO: Initialize all embeddings and layers.
         // Your ChessTransformer constructor is a great reference.
-        pieceEmbeddings = /* ... */,
-        squarePositionalEmbeddings = /* ... */,
-        sharedEncoder = /* ... */,
+        pieceEmbeddings = /* ... */
+            List.generate(13, (index) => ValueVector.fromDoubleList([0.0])),
+        squarePositionalEmbeddings = /* ... */
+            List.generate(128, (index) => ValueVector.fromDoubleList([0.0])),
+        sharedEncoder = /* ... */ TransformerEncoder(numLayers: 2),
         // The policyHead is similar to your old `moveHead`
-        policyHead = Layer.fromNeurons(embedSize * NUM_SQUARES, NUM_POSSIBLE_MOVES),
+        policyHead =
+            Layer.fromNeurons(embedSize * NUM_SQUARES, NUM_POSSIBLE_MOVES),
         // The valueHead predicts a single value from the board state
         valueHead = Layer.fromNeurons(embedSize * NUM_SQUARES, 1),
         // The rewardHead predicts a single reward value
         rewardHead = Layer.fromNeurons(embedSize * NUM_SQUARES, 1),
         // The dynamics network needs to combine a state and an action
-        dynamicsStateActionProcessor = Layer.fromNeurons(embedSize * NUM_SQUARES + NUM_POSSIBLE_MOVES, embedSize * NUM_SQUARES) {
-          // ...
-        }
+        dynamicsStateActionProcessor = Layer.fromNeurons(
+            embedSize * NUM_SQUARES + NUM_POSSIBLE_MOVES,
+            embedSize * NUM_SQUARES) {
+    // ...
+  }
 
   /// Representation Function (h): Board State -> Hidden State
   ValueVector representation(List<int> boardState) {
@@ -72,10 +78,12 @@ class MuZeroNet extends Module {
     });
 
     // 2. Pass through the shared encoder to get the hidden state
-    final encodedBoardFeatures = sharedEncoder.forwardEmbeddings(embeddedSquares);
-    
+    final encodedBoardFeatures =
+        sharedEncoder.forwardEmbeddings(embeddedSquares);
+
     // 3. Flatten to get the final hidden state vector
-    return ValueVector(encodedBoardFeatures.expand((vec) => vec.values).toList());
+    return ValueVector(
+        encodedBoardFeatures.expand((vec) => vec.values).toList());
   }
 
   /// Prediction Function (f): Hidden State -> Policy & Value
@@ -83,7 +91,8 @@ class MuZeroNet extends Module {
     // The hiddenState is the output from the representation or dynamics function.
     // Use the specialized heads to make predictions from this state.
     final policyLogits = policyHead.forward(hiddenState);
-    final value = valueHead.forward(hiddenState).values.first; // Get single value
+    final value =
+        valueHead.forward(hiddenState).values.first; // Get single value
 
     return PredictionOutput(ValueVector(policyLogits.values), value);
   }
@@ -92,15 +101,16 @@ class MuZeroNet extends Module {
   DynamicsOutput dynamics(ValueVector hiddenState, int actionIndex) {
     // 1. One-hot encode the action.
     final actionVector = ValueVector.fromDoubleList(
-      List.generate(NUM_POSSIBLE_MOVES, (i) => i == actionIndex ? 1.0 : 0.0)
-    );
+        List.generate(NUM_POSSIBLE_MOVES, (i) => i == actionIndex ? 1.0 : 0.0));
 
     // 2. Combine the current hidden state and the action vector.
-    final combinedInput = ValueVector([...hiddenState.values, ...actionVector.values]);
+    final combinedInput =
+        ValueVector([...hiddenState.values, ...actionVector.values]);
 
     // 3. Process the combined input to get the next hidden state.
     // This is a simplified approach; more advanced models might use attention here.
-    final nextState = ValueVector(dynamicsStateActionProcessor.forward(combinedInput).values);
+    final nextState =
+        ValueVector(dynamicsStateActionProcessor.forward(combinedInput).values);
 
     // 4. Predict the immediate reward from the *next* state.
     final reward = rewardHead.forward(nextState).values.first;

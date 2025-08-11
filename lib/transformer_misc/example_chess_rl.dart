@@ -24,9 +24,9 @@ void main() {
   print("--- Conceptual Chess Reinforcement Learning Example ---");
 
   // Model parameters
-  final embedSize = 128; // Embedding dimension for pieces/squares
+  final embedSize = 1; // Embedding dimension for pieces/squares
   final numLayers = 2; // Number of Transformer Encoder layers
-  final numHeads = 8; // Number of attention heads
+  final numHeads = 1; // Number of attention heads
 
   // Instantiate the Chess Transformer model
   final chessModel = ChessTransformer(
@@ -78,9 +78,10 @@ void main() {
   print("\nTraining Chess Transformer (simulated behavioral cloning)...");
   for (int epoch = 0; epoch < epochs; epoch++) {
     // 1. Forward pass: Get logits for all possible moves
+    // print("1. Forward pass: Get logits for all possible moves");
     final moveLogits = chessModel.forward(
         initialBoardState); // Returns List<Value> of size NUM_POSSIBLE_MOVES
-
+    // print("1. Forward pass: Get logits for all possible moves: $moveLogits");
     // 2. Calculate Cross-Entropy Loss against the target move
     final targetMoveVector = ValueVector(List.generate(
       NUM_POSSIBLE_MOVES,

@@ -31,7 +31,8 @@ const int NUM_SQUARES = BOARD_SIZE * BOARD_SIZE; // 64 squares
 // Simplified move representation: (from_square_idx * NUM_SQUARES) + to_square_idx
 // This results in 64*64 = 4096 possible (start, end) pairs, many of which are illegal.
 // A real system would filter legal moves or use a more nuanced action space.
-const int NUM_POSSIBLE_MOVES = NUM_SQUARES * NUM_SQUARES;
+// const int NUM_POSSIBLE_MOVES = NUM_SQUARES * NUM_SQUARES;
+const int NUM_POSSIBLE_MOVES = 2000;
 
 /// A Transformer model adapted for Chess board state encoding and move prediction.
 ///

@@ -122,7 +122,7 @@ void main() {
     model.zeroGrad();
 
     print("");
-    print("Input: ${input}");
+    print("Input: $input");
     print("Output: ${model.forward(input)}");
     print("");
   }
