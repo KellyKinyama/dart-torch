@@ -8,6 +8,7 @@ environment:
 
 # Add regular dependencies here.
 dependencies:
+  bishop: ^1.4.4
   chess: ^0.8.1
   vector_math: ^2.2.0
   # path: ^1.8.0

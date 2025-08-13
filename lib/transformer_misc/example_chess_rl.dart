@@ -24,9 +24,9 @@ void main() {
   print("--- Conceptual Chess Reinforcement Learning Example ---");
 
   // Model parameters
-  final embedSize = 1; // Embedding dimension for pieces/squares
+  final embedSize = 4; // Embedding dimension for pieces/squares
   final numLayers = 2; // Number of Transformer Encoder layers
-  final numHeads = 1; // Number of attention heads
+  final numHeads = 2; // Number of attention heads
 
   // Instantiate the Chess Transformer model
   final chessModel = ChessTransformer(
