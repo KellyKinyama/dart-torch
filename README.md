@@ -2016,3 +2016,4 @@ void exampleSequenceGeneration() {
   print(
       "Note: This is a simplified example. For better generation, consider techniques like top-k or nucleus sampling.");
 }
+ dart --old_gen_heap_size=6000 lib\linformer\chess_gpt_play.dart

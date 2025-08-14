@@ -63,7 +63,7 @@ void main() async {
   // 1. Create the model instance using the static factory constructor.
   print('Initializing ChessGptFullGame model...');
   final model = ChessGptFullGame.create(
-    projK: 128,
+    projK: 32,
     moveVocab: createMoveVocab(), // Pass the move vocabulary
     boardVocab: createBoardVocab(), // Pass the board vocabulary
   );
