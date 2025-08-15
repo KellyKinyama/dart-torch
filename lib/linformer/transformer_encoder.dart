@@ -40,7 +40,7 @@ class TransformerEncoder extends Module {
                 embedSize, (j) => math.Random().nextDouble() * 0.02 - 0.01))),
         // CORRECTED: Pass the projK parameter to the TransformerEncoderBlock constructor
         blocks = List.generate(numLayers,
-            (i) => TransformerEncoderBlock(embedSize, numHeads, projK: projK!)),
+            (i) => TransformerEncoderBlock(embedSize, numHeads, projK: projK)),
         finalLayerNorm = LayerNorm(embedSize);
 
   /// Standard forward pass for token IDs (used in NLP tasks).

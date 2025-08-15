@@ -17,9 +17,9 @@ class TransformerEncoderBlock extends Module {
   final LayerNorm ln1; // LayerNorm before attention
   final LayerNorm ln2; // LayerNorm before FFN
   final int embedSize;
-  final int projK; // The projected sequence length for Linformer
+  final int? projK; // The projected sequence length for Linformer
 
-  TransformerEncoderBlock(this.embedSize, int numHeads, {this.projK = 128})
+  TransformerEncoderBlock(this.embedSize, int numHeads, {this.projK})
       : attention = MultiHeadAttention(numHeads, embedSize,
             masked: false, projK: projK), // Pass projK to the attention layer
         ffn = FeedForward(embedSize),
