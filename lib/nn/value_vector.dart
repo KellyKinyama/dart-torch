@@ -1,4 +1,3 @@
-import "dart:math" as math;
 import "dart:typed_data";
 import "value.dart";
 
@@ -94,5 +93,5 @@ class ValueVector {
   }
 
   @override
-  String toString() => values.map((v) => v.toString()).join(', ');
+  String toString() => "[${values.map((v) => v.toString()).join(', ')}]";
 }

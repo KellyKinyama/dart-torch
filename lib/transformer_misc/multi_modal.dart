@@ -204,7 +204,7 @@ void main() {
 
   // Simplified Multimodal Training Loop
   print("\nTraining Multimodal Transformer...");
-  for (int epoch = 0; epoch < 50; epoch++) {
+  for (int epoch = 0; epoch < 6; epoch++) {
     // Increased epochs for multimodal example
     final logits =
         multimodalModel.forward(dummyAudioFeatures, dummyVideoEmbeddings);
