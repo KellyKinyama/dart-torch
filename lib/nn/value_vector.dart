@@ -45,12 +45,12 @@ class ValueVector {
   }
 
   // Add a Value scalar to each element
-  ValueVector operator /(Value other) =>
-      ValueVector(values.map((v) => v / other).toList());
+  // ValueVector operator /(Value other) =>
+  //     ValueVector(values.map((v) => v / other).toList());
 
   // Add a Value scalar to each element
-  ValueVector operator *(Value other) =>
-      ValueVector(values.map((v) => v * other).toList());
+  // ValueVector operator *(Value other) =>
+  //     ValueVector(values.map((v) => v * other).toList());
 
   // Subtract another ValueVector
   ValueVector operator -(ValueVector other) {
@@ -90,6 +90,42 @@ class ValueVector {
   ValueVector reLU() {
     return ValueVector(
         List.generate(values.length, (int index) => values[index].relu()));
+  }
+
+  // Add these to your ValueVector class
+
+  /// Unified multiplication operator
+  /// Handles:
+  /// 1. Vector * Value (Scalar)
+  /// 2. Vector * ValueVector (Element-wise/Hadamard)
+  ValueVector operator *(dynamic other) {
+    if (other is Value) {
+      // Original logic: Multiply every element by the same scalar
+      return ValueVector(values.map((v) => v * other).toList());
+    } else if (other is ValueVector) {
+      // AFT requirement: Element-wise product
+      assert(
+          values.length == other.values.length, 'Vector dimensions must match');
+      return ValueVector(
+          List.generate(values.length, (i) => values[i] * other.values[i]));
+    }
+    throw UnimplementedError(
+        "Multiplication not supported for: ${other.runtimeType}");
+  }
+
+  /// Unified division operator
+  ValueVector operator /(dynamic other) {
+    if (other is Value) {
+      return ValueVector(values.map((v) => v / other).toList());
+    } else if (other is ValueVector) {
+      // Useful for AFT context normalization
+      assert(
+          values.length == other.values.length, 'Vector dimensions must match');
+      return ValueVector(
+          List.generate(values.length, (i) => values[i] / other.values[i]));
+    }
+    throw UnimplementedError(
+        "Division not supported for: ${other.runtimeType}");
   }
 
   @override

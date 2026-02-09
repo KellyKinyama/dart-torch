@@ -2,7 +2,8 @@
 
 import 'dart:math' as math;
 import '/nn/module.dart';
-import 'transformer_decoder_block.dart'; // Import the new decoder block
+import 'aft_transformer_decoder_block.dart';
+// import 'transformer_decoder_block.dart'; // Import the new decoder block
 import 'layer_norm2.dart';
 import '/nn/layer.dart';
 import '/nn/value.dart';
@@ -48,8 +49,12 @@ class TransformerDecoder extends Module {
         // Each decoder block needs the encoder's embed size for cross-attention
         blocks = List.generate(
             numLayers,
-            (i) =>
-                TransformerDecoderBlock(embedSize, numHeads, encoderEmbedSize)),
+            (i) => TransformerDecoderBlock(
+                  embedSize,
+                  numHeads,
+                  encoderEmbedSize,
+                  blockSize,
+                )),
         finalLayerNorm = LayerNorm(embedSize),
         lmHead = Layer.fromNeurons(embedSize, vocabSize);
 
