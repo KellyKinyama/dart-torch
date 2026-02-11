@@ -5,31 +5,40 @@ import 'aft_gpt.dart';
 
 class SGD {
   final List<Tensor> parameters;
-  final List<Float32List> velocity; // Stores the "speed" of each weight
+  final List<Float32List> velocity;
   final double learningRate;
-  final double momentum = 0.9; // Standard momentum value
-  final double clipValue = 1.0;
+  final double momentum;
+  final double clipValue = 1.0; // Tightened clipping for AFT stability
+  final double weightDecay = 0.0001;
 
-  SGD(this.parameters, this.learningRate)
+  SGD(this.parameters, this.learningRate, {this.momentum = 0.0})
       : velocity = parameters.map((p) => Float32List(p.length)).toList();
 
   void step() {
+    // 1. Global Norm Clipping
+    double globalNorm = 0.0;
+    for (var p in parameters) {
+      for (var g in p.grad) globalNorm += g * g;
+    }
+    globalNorm = math.sqrt(globalNorm);
+
+    // Scaling factor to keep gradients sane
+    double scale = (globalNorm > clipValue) ? (clipValue / globalNorm) : 1.0;
+
     for (int i = 0; i < parameters.length; i++) {
       final p = parameters[i];
       final v = velocity[i];
 
       for (int j = 0; j < p.length; j++) {
-        double g = p.grad[j];
+        // 2. Weight Decay + Scaled Gradient
+        double g = (p.grad[j] * scale) + (weightDecay * p.data[j]);
 
-        // 1. Clip Gradient
-        if (g > clipValue) g = clipValue;
-        if (g < -clipValue) g = -clipValue;
-
-        // 2. Update Velocity: v = (momentum * v) - (lr * g)
+        // 3. Momentum Math (Now correctly using the class variable)
         v[j] = (momentum * v[j]) - (learningRate * g);
-
-        // 3. Update Weights: p = p + v
         p.data[j] += v[j];
+
+        // 4. Safety Rail
+        if (p.data[j].isNaN || p.data[j].isInfinite) p.data[j] = 0.0;
       }
     }
   }
@@ -42,16 +51,13 @@ class SGD {
 }
 
 void main() {
-  print("--- Tensor-Engine AFT-GPT Training ---");
+  print("--- Stable Tensor-Engine AFT-GPT Training ---");
 
-  // 1. Hyperparameters
-  const int vocabSize = 20;
-  const int embedSize = 32;
+  const int vocabSize = 10;
+  const int embedSize = 16; // Smaller is often more stable for toy examples
   const int blockSize = 10;
-  const int numLayers = 3;
-  const int numHeads = 4;
+  const int numLayers = 1; // Start with 1 layer to ensure convergence
 
-  // 2. Vocabulary & Data Setup
   final Map<String, int> stoi = {
     "hello": 0,
     "world": 1,
@@ -64,89 +70,86 @@ void main() {
   final List<int> inputIds = [3, 0, 1, 4, 4, 4, 4, 4, 4, 4];
   final List<int> targetIds = [0, 1, 2, 4, 4, 4, 4, 4, 4, 4];
 
-  // 3. Initialize Model & Optimizer
   final model = AFT_GPT(
     vocabSize: vocabSize,
     embedSize: embedSize,
     blockSize: blockSize,
     numLayers: numLayers,
-    numHeads: numHeads,
+    numHeads: 2,
   );
 
-  // STABILITY FIX: Lowered learning rate from 0.01 to 0.0005
-  // AFT is sensitive to large updates early on.
-  const double learningRate = 0.0005;
-  final optimizer = SGD(model.parameters(), learningRate);
+  // Use a conservative Learning Rate without momentum first
+  const double learningRate = 0.01;
+  final optimizer = SGD(model.parameters(), learningRate, momentum: 0.0);
 
-  // 4. Training Loop
-  for (int epoch = 0; epoch < 200; epoch++) {
-    // Increased epochs to account for lower LR
+  print('Starting training...');
+  for (int epoch = 0; epoch <= 300; epoch++) {
     optimizer.zeroGrad();
-
     final logits = model.forward(inputIds);
 
-    // 5. Vectorized Cross-Entropy Loss
     double lossValue = 0;
-    int count = 0;
+    int activeTokens = 0;
 
     for (int t = 0; t < inputIds.length; t++) {
       if (targetIds[t] == stoi["<pad>"]) continue;
+      activeTokens++;
 
+      int rowOffset = t * vocabSize;
+
+      // Log-Sum-Exp trick
       double maxLogit = -double.infinity;
       for (int v = 0; v < vocabSize; v++) {
-        if (logits.data[t * vocabSize + v] > maxLogit)
-          maxLogit = logits.data[t * vocabSize + v];
+        if (logits.data[rowOffset + v] > maxLogit)
+          maxLogit = logits.data[rowOffset + v];
       }
 
       double sumExp = 0;
       for (int v = 0; v < vocabSize; v++) {
-        sumExp += math.exp(logits.data[t * vocabSize + v] - maxLogit);
+        sumExp += math.exp(logits.data[rowOffset + v] - maxLogit);
       }
 
       double logSumExp = maxLogit + math.log(sumExp);
-      double targetLogit = logits.data[t * vocabSize + targetIds[t]];
-
-      lossValue += (logSumExp - targetLogit);
+      lossValue += (logSumExp - logits.data[rowOffset + targetIds[t]]);
 
       for (int v = 0; v < vocabSize; v++) {
-        double prob = math.exp(logits.data[t * vocabSize + v] - logSumExp);
-        // Standard Softmax Gradient: (p - 1) for target, (p) for others
-        logits.grad[t * vocabSize + v] =
-            (v == targetIds[t]) ? (prob - 1.0) : prob;
+        double prob = math.exp(logits.data[rowOffset + v] - logSumExp);
+        logits.grad[rowOffset + v] = (v == targetIds[t]) ? (prob - 1.0) : prob;
       }
-      count++;
     }
 
-    lossValue /= count;
-    for (int i = 0; i < logits.grad.length; i++) logits.grad[i] /= count;
+    lossValue /= activeTokens;
 
-    // 6. Backprop and Update
+    // Normalize gradients by the number of samples in the batch
+    for (int i = 0; i < logits.grad.length; i++) {
+      logits.grad[i] /= activeTokens;
+    }
+
     logits.backward();
     optimizer.step();
 
-    if (epoch % 10 == 0)
-      print("Epoch $epoch, Loss: ${lossValue.toStringAsFixed(4)}");
+    if (epoch % 50 == 0) {
+      print("Epoch $epoch | Loss: ${lossValue.toStringAsFixed(4)}");
+      if (lossValue.isNaN) break;
+    }
   }
 
-  // 7. Inference (Text Generation)
-  print("\nGeneration:");
+  // 3. Inference
+  print("\nInference Result:");
   List<int> currentSeq = [stoi["<start>"]!];
   for (int i = 0; i < 5; i++) {
     final out = model.forward(currentSeq);
+    int lastOffset = (currentSeq.length - 1) * vocabSize;
 
     int nextId = 0;
     double best = -double.infinity;
-    int lastOffset = (currentSeq.length - 1) * vocabSize;
-
     for (int v = 0; v < vocabSize; v++) {
       if (out.data[lastOffset + v] > best) {
         best = out.data[lastOffset + v];
         nextId = v;
       }
     }
-
     currentSeq.add(nextId);
     if (nextId == stoi["."]) break;
   }
-  print(currentSeq.map((id) => itos[id]).join(" "));
+  print("Output: ${currentSeq.map((id) => itos[id] ?? "??").join(" ")}");
 }

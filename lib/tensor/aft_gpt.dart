@@ -29,21 +29,40 @@ class AFT_GPT extends Module {
         lmHead = Linear(embedSize, vocabSize);
 
   /// Standard Generative Forward
+  // Tensor forward(List<int> idx, [Tensor? encoderHiddenStates]) {
+  //   final T = idx.length;
+
+  //   // 1. Token + Position Embeddings
+  //   Tensor x = tokenEmbed.forward(idx) + posEmbed.slice(0, T);
+
+  //   // 2. Transformer Blocks
+  //   for (var block in blocks) {
+  //     // If doing pure GPT (Decoder-only), x_enc can be same as x or null
+  //     x = block.forward(x, encoderHiddenStates ?? x);
+  //   }
+
+  //   // 3. Final Norm and Head
+  //   x = finalLn.forward(x);
+  //   return lmHead.forward(x); // Returns [T, VocabSize] Logits
+  // }
+
   Tensor forward(List<int> idx, [Tensor? encoderHiddenStates]) {
     final T = idx.length;
+    final E = tokenEmbed.parameters()[0].shape[1]; // Get embedSize
 
-    // 1. Token + Position Embeddings
-    Tensor x = tokenEmbed.forward(idx) + posEmbed.slice(0, T);
+    // 1. FIX: Slice the first T rows of the position embedding
+    // Current shape of x: [T, E]
+    // posEmbed.slice2D(T, E) returns shape [T, E]
+    Tensor x = tokenEmbed.forward(idx) + posEmbed.slice2D(T, E);
 
     // 2. Transformer Blocks
     for (var block in blocks) {
-      // If doing pure GPT (Decoder-only), x_enc can be same as x or null
       x = block.forward(x, encoderHiddenStates ?? x);
     }
 
     // 3. Final Norm and Head
     x = finalLn.forward(x);
-    return lmHead.forward(x); // Returns [T, VocabSize] Logits
+    return lmHead.forward(x);
   }
 
   @override

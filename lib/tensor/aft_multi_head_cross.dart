@@ -83,3 +83,55 @@ class MultiHeadAFTCross extends Module {
         posBias
       ];
 }
+
+void main() {
+  // 1. Hyperparameters
+  const int numHeads = 4;
+  const int decoderEmbed = 32; // The dimension the decoder is working with
+  const int encoderEmbed = 64; // The dimension of the encoder's output
+  const int maxSeqLen = 50; // Max capacity for position bias
+  const double lr = 0.01;
+
+  // 2. Initialize Module
+  // Note: encoderEmbedSize can be different from embedSize
+  final aftCross =
+      MultiHeadAFTCross(numHeads, decoderEmbed, encoderEmbed, maxSeqLen);
+
+  // 3. Prepare Dummy Tensors
+  // Decoder sequence (e.g., words already translated)
+  final xDec = Tensor.random([5, decoderEmbed]);
+
+  // Encoder sequence (e.g., the full source sentence being translated)
+  final xEnc = Tensor.random([12, encoderEmbed]);
+
+  // Target output for this step [T_dec, decoderEmbed]
+  final target = Tensor.fill([5, decoderEmbed], 0.1);
+
+  print('--- MultiHeadAFTCross Training Step ---');
+
+  // 4. Forward Pass
+  // The decoder queries the encoder
+  final output = aftCross.forward(xDec, xEnc);
+  print('Output shape: ${output.shape}'); // Expected: [5, 32]
+
+  // 5. Compute Loss
+  final loss = output.mseLoss(target);
+  print('Initial Cross-Attention Loss: ${loss.data[0].toStringAsFixed(6)}');
+
+  // 6. Backward Pass
+  // This backpropagates through the decoder projections AND encoder projections
+  loss.backward();
+
+  // 7. Manual SGD Update
+  for (var p in aftCross.parameters()) {
+    for (int i = 0; i < p.length; i++) {
+      p.data[i] -= lr * p.grad[i];
+    }
+    p.zeroGrad();
+  }
+
+  // 8. Verify
+  final nextLoss = aftCross.forward(xDec, xEnc).mseLoss(target);
+  print(
+      'Loss after Cross-Attention update: ${nextLoss.data[0].toStringAsFixed(6)}');
+}

@@ -294,20 +294,50 @@ class Tensor {
     return out;
   }
 
-  Tensor slice2D(int r, int c) {
-    final out = Tensor([r, c], children: {this});
-    for (int i = 0; i < r; i++) {
-      for (int j = 0; j < c; j++) {
-        out.data[i * c + j] = data[i * shape[1] + j];
+  // Tensor slice2D(int r, int c) {
+  //   final out = Tensor([r, c], children: {this});
+  //   for (int i = 0; i < r; i++) {
+  //     for (int j = 0; j < c; j++) {
+  //       out.data[i * c + j] = data[i * shape[1] + j];
+  //     }
+  //   }
+  //   out.onBackward = () {
+  //     for (int i = 0; i < r; i++) {
+  //       for (int j = 0; j < c; j++) {
+  //         grad[i * shape[1] + j] += out.grad[i * c + j];
+  //       }
+  //     }
+  //   };
+  //   return out;
+  // }
+
+  Tensor slice2D(int rows, int cols) {
+    // 1. Safety Check: Prevent RangeErrors before they happen
+    if (rows > this.shape[0] || cols > this.shape[1]) {
+      throw RangeError(
+          "Slice dimensions [$rows, $cols] exceed Tensor shape ${this.shape}");
+    }
+
+    final out = Tensor([rows, cols], children: {this});
+    final int stride = this.shape[1]; // The original width
+
+    // 2. Forward Pass
+    for (int i = 0; i < rows; i++) {
+      for (int j = 0; j < cols; j++) {
+        out.data[i * cols + j] = this.data[i * stride + j];
       }
     }
+
+    // 3. Backward Pass: Map gradients from the small slice back to the big tensor
     out.onBackward = () {
-      for (int i = 0; i < r; i++) {
-        for (int j = 0; j < c; j++) {
-          grad[i * shape[1] + j] += out.grad[i * c + j];
+      for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+          // We use += because multiple slices might overlap or be used multiple times
+          this.grad[i * stride + j] += out.grad[i * cols + j];
         }
       }
     };
+
     return out;
   }
 
@@ -350,6 +380,14 @@ class Tensor {
   }
 
   void zeroGrad() => grad.fillRange(0, length, 0.0);
+
+  // Add this helper to your Tensor or Generation logic
+// List<double> softmax(List<double> logits) {
+//   double maxLogit = logits.reduce(math.max);
+//   List<double> exps = logits.map((l) => math.exp(l - maxLogit)).toList();
+//   double sumExps = exps.reduce((a, b) => a + b);
+//   return exps.map((e) => e / sumExps).toList();
+// }
 }
 
 void main() {
