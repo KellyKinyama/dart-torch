@@ -456,6 +456,35 @@ class Tensor {
     return out;
   }
 
+  /// Extracts a specific row as a new [1, Cols] Tensor
+  Tensor getRow(int rowIndex) {
+    final int cols = shape[1];
+    final int start = rowIndex * cols;
+    final out = Tensor([1, cols], children: {this});
+
+    for (int i = 0; i < cols; i++) {
+      out.data[i] = data[start + i];
+    }
+
+    out.onBackward = () {
+      for (int i = 0; i < cols; i++) {
+        grad[start + i] += out.grad[i];
+      }
+    };
+    return out;
+  }
+
+  /// In-place copy of row data (Used for assembling the final Y matrix)
+  void setRow(int rowIndex, Tensor rowTensor) {
+    final int cols = shape[1];
+    final int start = rowIndex * cols;
+    for (int i = 0; i < cols; i++) {
+      data[start + i] = rowTensor.data[i];
+    }
+    // Note: setRow is used at the end of forward, gradients are
+    // handled by the graph of the Tensors created during calculation.
+  }
+
   // Tensor slice2D(int r, int c) {
   //   final out = Tensor([r, c], children: {this});
   //   for (int i = 0; i < r; i++) {
