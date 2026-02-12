@@ -1,10 +1,12 @@
 // file: transformer_decoder.dart (RENAMED from transformer.dart)
 
 import 'dart:math' as math;
+import '../tensor/linear.dart';
+import '../transformer/layer_norm2.dart';
 import '/nn/module.dart';
-// import 'aft_transformer_decoder_block.dart';
-import 'transformer_decoder_block.dart'; // Import the new decoder block
-import 'layer_norm2.dart';
+import '../transformer/aft_transformer_decoder_block.dart';
+// import 'transformer_decoder_block.dart'; // Import the new decoder block
+// import 'layer_norm2.dart';
 import '/nn/layer.dart';
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
@@ -28,7 +30,7 @@ class TransformerDecoder extends Module {
   // Network layers
   final List<TransformerDecoderBlock> blocks; // Uses the new decoder block
   final LayerNorm finalLayerNorm;
-  final Layer lmHead; // Language Model Head projects to vocab size
+  final Linear lmHead; // Language Model Head projects to vocab size
 
   TransformerDecoder({
     this.vocabSize = 50,
@@ -53,10 +55,11 @@ class TransformerDecoder extends Module {
                   embedSize,
                   numHeads,
                   encoderEmbedSize,
-                  // blockSize,
+                  blockSize,
                 )),
         finalLayerNorm = LayerNorm(embedSize),
-        lmHead = Layer.fromNeurons(embedSize, vocabSize);
+        lmHead = //Layer.fromNeurons(embedSize, vocabSize);
+            Linear(embedSize, vocabSize);
 
   /// The forward pass for the Transformer Decoder model.
   ///

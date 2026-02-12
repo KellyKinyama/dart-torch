@@ -1,43 +1,38 @@
-// file: transformer_decoder.dart (RENAMED from transformer.dart)
+// file: transformer.dart
 
 import 'dart:math' as math;
 import '/nn/module.dart';
-// import 'aft_transformer_decoder_block.dart';
-import 'transformer_decoder_block.dart'; // Import the new decoder block
+import 'aft_transformer_block.dart';
 import 'layer_norm2.dart';
 import '/nn/layer.dart';
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
 
-/// A Transformer Decoder model.
-///
-/// This model takes a target sequence and encoder output, and produces
-/// logits for the next token in the target sequence.
-class TransformerDecoder extends Module {
+/// A complete decoder-only Transformer model (GPT-style).
+class Transformer extends Module {
   final int vocabSize;
   final int embedSize;
-  final int blockSize; // Maximum context length for the decoder
+  final int blockSize; // Maximum context length
   final int numLayers;
   final int numHeads;
-  final int encoderEmbedSize; // NEW: The embedding size of the encoder's output
 
   // Learnable parameter tables
   final List<ValueVector> tokenEmbeddings;
   final List<ValueVector> positionEmbeddings;
 
   // Network layers
-  final List<TransformerDecoderBlock> blocks; // Uses the new decoder block
+  final List<TransformerBlock> blocks;
   final LayerNorm finalLayerNorm;
   final Layer lmHead; // Language Model Head projects to vocab size
 
-  TransformerDecoder({
+  Transformer({
     this.vocabSize = 50,
     this.embedSize = 32,
     this.blockSize = 8,
     this.numLayers = 4,
     this.numHeads = 4,
-    this.encoderEmbedSize = 64, // NEW: Must match the encoder's embedSize
-  })  : assert(embedSize % numHeads == 0),
+  })  :
+        // Learnable embedding tables
         tokenEmbeddings = List.generate(
             vocabSize,
             (i) => ValueVector.fromDoubleList(List.generate(
@@ -46,24 +41,21 @@ class TransformerDecoder extends Module {
             blockSize,
             (i) => ValueVector.fromDoubleList(List.generate(
                 embedSize, (j) => math.Random().nextDouble() * 0.02 - 0.01))),
-        // Each decoder block needs the encoder's embed size for cross-attention
+
+        // Stack of transformer blocks
         blocks = List.generate(
             numLayers,
-            (i) => TransformerDecoderBlock(
-                  embedSize,
-                  numHeads,
-                  encoderEmbedSize,
-                  // blockSize,
-                )),
+            (i) =>
+                TransformerBlock(embedSize, numHeads, blockSize, masked: true)),
+
+        // Final layers for output
         finalLayerNorm = LayerNorm(embedSize),
         lmHead = Layer.fromNeurons(embedSize, vocabSize);
 
-  /// The forward pass for the Transformer Decoder model.
+  /// The forward pass for the entire Transformer model.
   ///
-  /// Takes a list of integer target token indices `idx` (shifted right for training)
-  /// and the `encoderOutput` from the Transformer Encoder.
-  /// Returns logits for the next token prediction.
-  List<ValueVector> forward(List<int> idx, List<ValueVector> encoderOutput) {
+  /// Takes a list of integer token indices `idx` and returns logits for the next token.
+  List<ValueVector> forward(List<int> idx) {
     final T = idx.length;
     if (T > blockSize) {
       throw ArgumentError(
@@ -77,10 +69,9 @@ class TransformerDecoder extends Module {
       return tok_emb + pos_emb;
     });
 
-    // 2. Pass sequence through all transformer decoder blocks
-    // Each block now also receives the encoder's output
+    // 2. Pass sequence through all transformer blocks
     for (final block in blocks) {
-      x = block.forward(x, encoderOutput); // Pass encoderOutput
+      x = block.forward(x);
     }
 
     // 3. Apply final layer norm
@@ -95,9 +86,9 @@ class TransformerDecoder extends Module {
   @override
   List<Value> parameters() {
     return [
-      ...tokenEmbeddings.expand((vec) => vec.values),
-      ...positionEmbeddings.expand((vec) => vec.values),
-      ...blocks.expand((block) => block.parameters()),
+      ...tokenEmbeddings.expand((v) => v.values),
+      ...positionEmbeddings.expand((v) => v.values),
+      ...blocks.expand((b) => b.parameters()),
       ...finalLayerNorm.parameters(),
       ...lmHead.parameters(),
     ];

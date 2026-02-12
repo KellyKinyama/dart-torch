@@ -1,62 +1,63 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'optimizer.dart';
 import 'tensor.dart';
 import 'aft_gpt.dart';
 
-class SGD {
-  final List<Tensor> parameters;
-  final List<Float32List> velocity;
-  final double learningRate;
-  final double momentum;
-  final double clipValue = 1.0; // Tightened clipping for AFT stability
-  final double weightDecay = 0.0001;
+// class SGD {
+//   final List<Tensor> parameters;
+//   final List<Float32List> velocity;
+//   final double learningRate;
+//   final double momentum;
+//   final double clipValue = 1.0; // Tightened clipping for AFT stability
+//   final double weightDecay = 0.0001;
 
-  SGD(this.parameters, this.learningRate, {this.momentum = 0.0})
-      : velocity = parameters.map((p) => Float32List(p.length)).toList();
+//   SGD(this.parameters, this.learningRate, {this.momentum = 0.0})
+//       : velocity = parameters.map((p) => Float32List(p.length)).toList();
 
-  void step() {
-    // 1. Global Norm Clipping
-    double globalNorm = 0.0;
-    for (var p in parameters) {
-      for (var g in p.grad) globalNorm += g * g;
-    }
-    globalNorm = math.sqrt(globalNorm);
+//   void step() {
+//     // 1. Global Norm Clipping
+//     double globalNorm = 0.0;
+//     for (var p in parameters) {
+//       for (var g in p.grad) globalNorm += g * g;
+//     }
+//     globalNorm = math.sqrt(globalNorm);
 
-    // Scaling factor to keep gradients sane
-    double scale = (globalNorm > clipValue) ? (clipValue / globalNorm) : 1.0;
+//     // Scaling factor to keep gradients sane
+//     double scale = (globalNorm > clipValue) ? (clipValue / globalNorm) : 1.0;
 
-    for (int i = 0; i < parameters.length; i++) {
-      final p = parameters[i];
-      final v = velocity[i];
+//     for (int i = 0; i < parameters.length; i++) {
+//       final p = parameters[i];
+//       final v = velocity[i];
 
-      for (int j = 0; j < p.length; j++) {
-        // 2. Weight Decay + Scaled Gradient
-        double g = (p.grad[j] * scale) + (weightDecay * p.data[j]);
+//       for (int j = 0; j < p.length; j++) {
+//         // 2. Weight Decay + Scaled Gradient
+//         double g = (p.grad[j] * scale) + (weightDecay * p.data[j]);
 
-        // 3. Momentum Math (Now correctly using the class variable)
-        v[j] = (momentum * v[j]) - (learningRate * g);
-        p.data[j] += v[j];
+//         // 3. Momentum Math (Now correctly using the class variable)
+//         v[j] = (momentum * v[j]) - (learningRate * g);
+//         p.data[j] += v[j];
 
-        // 4. Safety Rail
-        if (p.data[j].isNaN || p.data[j].isInfinite) p.data[j] = 0.0;
-      }
-    }
-  }
+//         // 4. Safety Rail
+//         if (p.data[j].isNaN || p.data[j].isInfinite) p.data[j] = 0.0;
+//       }
+//     }
+//   }
 
-  void zeroGrad() {
-    for (final p in parameters) {
-      p.grad.fillRange(0, p.length, 0.0);
-    }
-  }
-}
+//   void zeroGrad() {
+//     for (final p in parameters) {
+//       p.grad.fillRange(0, p.length, 0.0);
+//     }
+//   }
+// }
 
 void main() {
   print("--- Stable Tensor-Engine AFT-GPT Training ---");
 
-  const int vocabSize = 10;
-  const int embedSize = 16; // Smaller is often more stable for toy examples
-  const int blockSize = 10;
-  const int numLayers = 1; // Start with 1 layer to ensure convergence
+  const int vocabSize = 5;
+  const int embedSize = 32; // Smaller is often more stable for toy examples
+  const int blockSize = 16;
+  const int numLayers = 2; // Start with 1 layer to ensure convergence
 
   final Map<String, int> stoi = {
     "hello": 0,
@@ -75,12 +76,14 @@ void main() {
     embedSize: embedSize,
     blockSize: blockSize,
     numLayers: numLayers,
-    numHeads: 2,
+    numHeads: 4,
   );
 
   // Use a conservative Learning Rate without momentum first
   const double learningRate = 0.01;
-  final optimizer = SGD(model.parameters(), learningRate, momentum: 0.0);
+  final optimizer = SGD(
+    model.parameters(), lr: learningRate, //momentum: 0.0
+  );
 
   print('Starting training...');
   for (int epoch = 0; epoch <= 300; epoch++) {

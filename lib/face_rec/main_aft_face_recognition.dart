@@ -5,7 +5,7 @@ import 'dart:math' as math;
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
 // import '/nn/module.dart'; // Import Module for SGD to inherit from if it's a Module
-import 'vit_face_embedding_model.dart'; // Our modified ViT for embeddings
+import 'aft_vit_face_embedding_model.dart'; // Our modified ViT for embeddings
 import 'triplet_loss.dart'; // Our Triplet Loss implementation
 
 // Re-using a simple SGD optimizer (can be a standalone class or part of a utilities file)
@@ -46,7 +46,7 @@ void main() {
   final patchSize = 8; // Patches will be 8x8 pixels
   final numChannels = 3; // RGB image
   final embedSize =
-      64; // Transformer embedding dimension (also our face embedding size)
+      128; // Transformer embedding dimension (also our face embedding size)
   final numLayers = 2; // Small number of layers for quick execution
   final numHeads = 4; // Number of attention heads
 

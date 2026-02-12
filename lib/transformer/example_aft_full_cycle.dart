@@ -30,8 +30,8 @@ void main() {
   const int vocabSize = 20;
   const int embedSize = 16; // Smaller for faster training in this example
   const int blockSize = 10;
-  const int numLayers = 2;
-  const int numHeads = 4;
+  const int numLayers = 4;
+  const int numHeads = 8;
   const double learningRate = 0.1; // AFT handles higher LR well
 
   // 2. Vocabulary & Data Setup
@@ -121,7 +121,7 @@ void main() {
 
   // 4. Training Loop
   print("\n--- Phase 1: Training ---");
-  const int epochs = 100;
+  const int epochs = 200;
   for (int epoch = 0; epoch < epochs; epoch++) {
     double epochLoss = 0;
 
@@ -152,8 +152,9 @@ void main() {
         optimizer.step();
       }
     }
-    if ((epoch + 1) % 20 == 0)
+    if ((epoch + 1) % 20 == 0) {
       print("Epoch ${epoch + 1}, Loss: ${epochLoss / trainInputs.length}");
+    }
   }
 
   // 5. Phase 2: Generation

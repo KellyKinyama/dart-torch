@@ -3,8 +3,8 @@
 import 'dart:math';
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
-import 'audio_transformer.dart'; // Import your AudioTransformer
-import 'video_transformer.dart'; // Import your VideoTransformer
+import 'aft_audio_transformer.dart'; // Import your AudioTransformer
+import 'aft_video_transformer.dart'; // Import your VideoTransformer
 import '/nn/module.dart'; // Import Module for MultimodalTransformer
 import '/nn/layer.dart'; // Import Layer for the joint MLP head
 

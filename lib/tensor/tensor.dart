@@ -16,7 +16,7 @@ class Tensor {
   final int length;
   final Set<Tensor> _prev;
 
-  void Function() _backward = () {};
+  void Function()? _backward;
 
   Tensor(this.shape, {Iterable<Tensor>? children})
       : length = shape.isEmpty ? 0 : shape.reduce((a, b) => a * b),
@@ -25,6 +25,19 @@ class Tensor {
         _prev = children?.toSet() ?? {};
 
   // --- Initializers ---
+  /// Creates a new Tensor filled with 0.0
+  factory Tensor.zeros(List<int> shape, {Set<Tensor>? children}) {
+    int totalLength = shape.reduce((a, b) => a * b);
+    return Tensor(shape, children: children)
+      ..data.fillRange(0, totalLength, 0.0);
+  }
+
+  /// Creates a new Tensor filled with 1.0
+  factory Tensor.ones(List<int> shape, {Set<Tensor>? children}) {
+    int totalLength = shape.reduce((a, b) => a * b);
+    return Tensor(shape, children: children)
+      ..data.fillRange(0, totalLength, 1.0);
+  }
 
   factory Tensor.fill(List<int> shape, double val) {
     final t = Tensor(shape);
@@ -59,22 +72,47 @@ class Tensor {
 
   Tensor operator +(dynamic other) {
     final out = Tensor(shape, children: {this});
+
     if (other is Tensor) {
       out._prev.add(other);
+
+      // CAPTURE: Create a local, typed reference for the closure
+      final Tensor otherTensor = other;
+      final Tensor thisTensor = this;
+
+      // 1. Forward Pass
       for (int i = 0; i < length; i++) {
-        out.data[i] = data[i] + other.data[i % other.length];
+        out.data[i] = data[i] + otherTensor.data[i % otherTensor.length];
       }
+
+      // 2. Backward Pass
       out.onBackward = () {
         for (int i = 0; i < length; i++) {
-          grad[i] += out.grad[i];
-          other.grad[i % other.length] += out.grad[i];
+          double g = out.grad[i];
+
+          // 3. DEBUGGING: Let's remove the clipping for a moment
+          // If gradients were small, clipping to 10.0 doesn't help.
+          // If they were NaN, we want to know why.
+          // if (g.isNaN) g = 0.0;
+
+          // Propagate using the captured references
+          thisTensor.grad[i] += g;
+          otherTensor.grad[i % otherTensor.length] += g;
         }
       };
     } else if (other is num) {
       final double scalar = other.toDouble();
-      for (int i = 0; i < length; i++) out.data[i] = data[i] + scalar;
+      final Tensor thisTensor = this;
+
+      for (int i = 0; i < length; i++) {
+        out.data[i] = data[i] + scalar;
+      }
+
       out.onBackward = () {
-        for (int i = 0; i < length; i++) grad[i] += out.grad[i];
+        for (int i = 0; i < length; i++) {
+          double g = out.grad[i];
+          if (!g.isNaN) thisTensor.grad[i] += g;
+        }
       };
     }
     return out;
@@ -82,20 +120,23 @@ class Tensor {
 
   Tensor operator *(dynamic other) {
     final out = Tensor(shape, children: {this});
+    final Tensor left = this; // Capture
+
     if (other is Tensor) {
-      out._prev.add(other);
-      for (int i = 0; i < length; i++) out.data[i] = data[i] * other.data[i];
+      final Tensor right = other; // Capture
+      out._prev.add(right);
+      for (int i = 0; i < length; i++) out.data[i] = data[i] * right.data[i];
       out.onBackward = () {
         for (int i = 0; i < length; i++) {
-          grad[i] += other.data[i] * out.grad[i];
-          other.grad[i] += data[i] * out.grad[i];
+          left.grad[i] += right.data[i] * out.grad[i];
+          right.grad[i] += left.data[i] * out.grad[i];
         }
       };
     } else if (other is num) {
       final double scalar = other.toDouble();
       for (int i = 0; i < length; i++) out.data[i] = data[i] * scalar;
       out.onBackward = () {
-        for (int i = 0; i < length; i++) grad[i] += scalar * out.grad[i];
+        for (int i = 0; i < length; i++) left.grad[i] += scalar * out.grad[i];
       };
     }
     return out;
@@ -144,23 +185,39 @@ class Tensor {
   // --- Matrix Multiplication ---
 
   Tensor matmul(Tensor other) {
-    assert(shape[1] == other.shape[0]);
-    int M = shape[0], K = shape[1], N = other.shape[1];
-    final out = Tensor([M, N], children: {this, other});
+    assert(shape[1] == other.shape[0],
+        "Dimension mismatch: ${shape[1]} != ${other.shape[0]}");
+
+    // CRITICAL: Capture 'this' and 'other' as local final variables.
+    // This ensures the backward closure points to the EXACT weight buffers.
+    final Tensor input = this;
+    final Tensor weights = other;
+
+    int M = shape[0];
+    int K = shape[1];
+    int N = other.shape[1];
+
+    final out = Tensor([M, N], children: {input, weights});
+
+    // Forward Pass
     for (int i = 0; i < M; i++) {
       for (int k = 0; k < K; k++) {
         for (int j = 0; j < N; j++) {
-          out.data[i * N + j] += data[i * K + k] * other.data[k * N + j];
+          out.data[i * N + j] +=
+              input.data[i * K + k] * weights.data[k * N + j];
         }
       }
     }
+
+    // Backward Pass
     out.onBackward = () {
       for (int i = 0; i < M; i++) {
         for (int k = 0; k < K; k++) {
           for (int j = 0; j < N; j++) {
-            double og = out.grad[i * N + j];
-            grad[i * K + k] += other.data[k * N + j] * og;
-            other.grad[k * N + j] += data[i * K + k] * og;
+            double gradOut = out.grad[i * N + j];
+            // Update the locally captured weight and input tensors
+            input.grad[i * K + k] += weights.data[k * N + j] * gradOut;
+            weights.grad[k * N + j] += input.data[i * K + k] * gradOut;
           }
         }
       }
@@ -227,6 +284,7 @@ class Tensor {
     out.onBackward = () {
       for (int i = 0; i < length; i++) if (data[i] > 0) grad[i] += out.grad[i];
     };
+
     return out;
   }
 
@@ -252,12 +310,25 @@ class Tensor {
           0.5 * x * (1 + _mathTanh(s2p * (x + 0.044715 * math.pow(x, 3))));
     }
     out.onBackward = () {
+      final Tensor self = this;
       for (int i = 0; i < length; i++) {
-        double x = data[i];
-        double cdf =
-            0.5 * (1.0 + _mathTanh(s2p * (x + 0.044715 * math.pow(x, 3))));
-        double pdf = (1.0 / math.sqrt(2 * math.pi)) * math.exp(-0.5 * x * x);
-        grad[i] += (cdf + x * pdf) * out.grad[i];
+        double x = self.data[i];
+        // Numerical stability check
+        if (x.isNaN || x.isInfinite) continue;
+
+        double v = 0.7978845608 * (x + 0.044715 * math.pow(x, 3));
+        double t = _mathTanh(v);
+        double deriv = 0.5 * (1.0 + t) +
+            0.5 *
+                x *
+                (1.0 - t * t) *
+                0.7978845608 *
+                (1.0 + 3.0 * 0.044715 * x * x);
+
+        double incomingGrad = out.grad[i];
+        if (!incomingGrad.isNaN) {
+          self.grad[i] += deriv * incomingGrad;
+        }
       }
     };
     return out;
@@ -271,13 +342,101 @@ class Tensor {
       out.data[i] = math.exp(data[i] - maxVal);
       sumExp += out.data[i];
     }
-    for (int i = 0; i < length; i++) out.data[i] /= (sumExp + 1e-9);
+    for (int i = 0; i < length; i++) {
+      out.data[i] /= (sumExp + 1e-9);
+    }
     out.onBackward = () {
       double dot = 0;
-      for (int i = 0; i < length; i++) dot += out.data[i] * out.grad[i];
-      for (int i = 0; i < length; i++)
+      for (int i = 0; i < length; i++) {
+        dot += out.data[i] * out.grad[i];
+      }
+      for (int i = 0; i < length; i++) {
         grad[i] += out.data[i] * (out.grad[i] - dot);
+      }
     };
+    return out;
+  }
+
+  Tensor crossEntropy(Tensor target) {
+    final out = Tensor([1], children: {this});
+    double lossSum = 0;
+    // Assumes 'this' is already passed through Softmax
+    for (int i = 0; i < length; i++) {
+      lossSum -= target.data[i] * math.log(data[i] + 1e-9);
+    }
+    out.data[0] = lossSum / (shape[0]); // Average over batch
+
+    out.onBackward = () {
+      for (int i = 0; i < length; i++) {
+        // Gradient of Softmax + CrossEntropy simplifies to (pred - target)
+        grad[i] += (data[i] - target.data[i]) * out.grad[0];
+      }
+    };
+    return out;
+  }
+
+  Tensor transpose() {
+    final out = Tensor([shape[1], shape[0]], children: {this});
+    int R = shape[0];
+    int C = shape[1];
+    for (int i = 0; i < R; i++) {
+      for (int j = 0; j < C; j++) {
+        out.data[j * R + i] = data[i * C + j];
+      }
+    }
+    out.onBackward = () {
+      for (int i = 0; i < R; i++) {
+        for (int j = 0; j < C; j++) {
+          grad[i * C + j] += out.grad[j * R + i];
+        }
+      }
+    };
+    return out;
+  }
+
+  static Tensor concat(List<Tensor> tensors, {int axis = 1}) {
+    if (tensors.isEmpty) throw ArgumentError("Cannot concat empty list");
+    if (axis != 1)
+      throw UnimplementedError("Only axis 1 concat is implemented for now");
+
+    // 1. Calculate the new shape
+    int rows = tensors[0].shape[0];
+    int newCols = 0;
+    for (var t in tensors) {
+      if (t.shape[0] != rows)
+        throw ArgumentError("All tensors must have same number of rows");
+      newCols += t.shape[1];
+    }
+
+    final out = Tensor([rows, newCols], children: tensors);
+
+    // 2. Forward Pass: Copy data into the new buffer
+    int currentOffset = 0;
+    for (var t in tensors) {
+      int tWidth = t.shape[1];
+      for (int i = 0; i < rows; i++) {
+        // Copy one row of the current tensor into the correct spot in 'out'
+        for (int j = 0; j < tWidth; j++) {
+          out.data[i * newCols + (currentOffset + j)] = t.data[i * tWidth + j];
+        }
+      }
+      currentOffset += tWidth;
+    }
+
+    // 3. Backward Pass: Map gradients back to the original tensors
+    out.onBackward = () {
+      int backOffset = 0;
+      for (var t in tensors) {
+        int tWidth = t.shape[1];
+        for (int i = 0; i < rows; i++) {
+          for (int j = 0; j < tWidth; j++) {
+            t.grad[i * tWidth + j] += out.grad[i * newCols + (backOffset + j)];
+          }
+        }
+        backOffset += tWidth;
+      }
+    };
+
     return out;
   }
 
@@ -286,10 +445,13 @@ class Tensor {
   Tensor slice(int startOffset, int endOffset) {
     final int sliceLength = endOffset - startOffset;
     final out = Tensor([sliceLength], children: {this});
-    for (int i = 0; i < sliceLength; i++) out.data[i] = data[startOffset + i];
+    for (int i = 0; i < sliceLength; i++) {
+      out.data[i] = data[startOffset + i];
+    }
     out.onBackward = () {
-      for (int i = 0; i < sliceLength; i++)
+      for (int i = 0; i < sliceLength; i++) {
         grad[startOffset + i] += out.grad[i];
+      }
     };
     return out;
   }
@@ -360,23 +522,53 @@ class Tensor {
     return out;
   }
 
-  set onBackward(void Function() func) => _backward = func;
+  Tensor leakyRelu([double alpha = 0.01]) {
+    final out = Tensor(shape, children: {this});
+    for (int i = 0; i < length; i++) {
+      out.data[i] = data[i] > 0 ? data[i] : data[i] * alpha;
+    }
+    out.onBackward = () {
+      for (int i = 0; i < length; i++) {
+        grad[i] += (data[i] > 0 ? 1.0 : alpha) * out.grad[i];
+      }
+    };
+    return out;
+  }
 
-  void _runBackward() => _backward();
+  // 2. Fix the setter to ensure it's hitting the private field
+  set onBackward(void Function() func) {
+    _backward = func;
+  }
 
-  void backward() {
+  void _runBackward() {
+    if (_backward != null) _backward!();
+  }
+
+  Set<Tensor> get parents => _prev;
+
+  // Inside your Tensor class
+  // 3. Update the loop in backward()
+  void backward({bool seed = true}) {
     final topo = <Tensor>[];
     final visited = <Tensor>{};
     void build(Tensor t) {
       if (visited.add(t)) {
-        for (final p in t._prev) build(p);
+        for (final p in t.parents) build(p);
         topo.add(t);
       }
     }
 
     build(this);
-    grad.fillRange(0, length, 1.0);
-    for (final t in topo.reversed) t._runBackward();
+
+    if (seed) grad.fillRange(0, length, 1.0);
+
+    int ran = 0;
+    for (final t in topo.reversed) {
+      // Direct call to our helper
+      t._runBackward();
+      ran++;
+    }
+    // print("Backprop: $ran functions executed.");
   }
 
   void zeroGrad() => grad.fillRange(0, length, 0.0);

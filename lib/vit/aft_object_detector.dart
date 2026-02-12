@@ -3,7 +3,7 @@
 import '/nn/module.dart';
 import '/nn/value.dart';
 import '/nn/value_vector.dart';
-import 'vit_backbone.dart'; // Your modified ViT backbone
+import 'aft_vit_backbone.dart'; // Your modified ViT backbone
 import 'object_detection_head.dart'; // Your new detection head
 
 /// A complete Vision Transformer-based Object Detector.

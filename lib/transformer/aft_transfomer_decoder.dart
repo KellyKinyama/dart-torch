@@ -2,8 +2,8 @@
 
 import 'dart:math' as math;
 import '/nn/module.dart';
-// import 'aft_transformer_decoder_block.dart';
-import 'transformer_decoder_block.dart'; // Import the new decoder block
+import 'aft_transformer_decoder_block.dart';
+// import 'transformer_decoder_block.dart'; // Import the new decoder block
 import 'layer_norm2.dart';
 import '/nn/layer.dart';
 import '/nn/value.dart';
@@ -53,7 +53,7 @@ class TransformerDecoder extends Module {
                   embedSize,
                   numHeads,
                   encoderEmbedSize,
-                  // blockSize,
+                  blockSize,
                 )),
         finalLayerNorm = LayerNorm(embedSize),
         lmHead = Layer.fromNeurons(embedSize, vocabSize);

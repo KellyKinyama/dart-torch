@@ -16,7 +16,7 @@ import '/nn/value_vector.dart';
 // import '../transformer/layer_norm2.dart'; // Re-used from your existing LayerNorm
 // import 'swin_transformer_block.dart';
 // import 'swin_stage.dart';
-import 'swin_transformer.dart';
+import 'aft_swin_transformer.dart';
 
 void main() {
   print("--- Swin Transformer Example Usage ---");
