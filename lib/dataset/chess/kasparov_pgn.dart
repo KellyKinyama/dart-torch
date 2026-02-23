@@ -6380,6 +6380,10 @@ List<List<String>> dataset(int size) {
     if (parsed > size) break;
   }
 
-  // print(gameLines);
-  return gameLines;
+  // print(gameLines.where((test) => test.isNotEmpty));
+  return gameLines.where((test) => test.isNotEmpty).toList();
+}
+
+void main() {
+  print(dataset(100));
 }

@@ -1,7 +1,10 @@
 import 'dart:math' as math;
 
+import 'package:dart_torch/tensor_new/adam.dart';
+
 import '../tensor/tensor.dart';
 import 'aft_transformer_decoder.dart';
+import 'example_aft_main.dart';
 
 class SGD {
   final List<Tensor> parameters;
@@ -57,14 +60,14 @@ void main() {
     blockSize: blockSize,
     encoderEmbedSize: embedSize,
   );
-  final optimizer = SGD(model.parameters(), learningRate);
+  final optimizer = Adam(model.parameters(), lr: learningRate);
 
   // Dummy Encoder context [1, embedSize]
   final encoderOutput = Tensor.zeros([1, embedSize]);
 
   // 4. Training Loop
   print("\nStarting Training...");
-  for (int epoch = 0; epoch < 500; epoch++) {
+  for (int epoch = 0; epoch < 5000; epoch++) {
     optimizer.zeroGrad();
 
     // Forward: [T, vocabSize]
@@ -72,45 +75,26 @@ void main() {
 
     // 5. Tensor-based Cross Entropy Loss
     // loss = -sum(log_softmax(logits)[target]) / T
-    double lossValue = 0.0;
+    // double lossValue = 0.0;
 
-    // We compute gradients manually for the loss layer to feed the graph
-    // (In a full engine, you'd have a CrossEntropy node)
-    for (int t = 0; t < trainInput.length; t++) {
-      int targetId = trainTarget[t];
+    final loss = crossEntropy(logits, trainTarget, vocabSize);
 
-      // Log-Sum-Exp trick for stability
-      double maxLogit = logits.getRow(t).data.reduce((a, b) => a > b ? a : b);
-      double sumExp = 0;
-      for (var val in logits.getRow(t).data) {
-        sumExp += math.exp(val - maxLogit);
-      }
-      double logProb =
-          logits.data[t * vocabSize + targetId] - maxLogit - math.log(sumExp);
-
-      lossValue -= logProb;
-
-      // Set gradients for backprop: (softmax - 1 at target)
-      for (int v = 0; v < vocabSize; v++) {
-        double p = math.exp(logits.data[t * vocabSize + v] - maxLogit) / sumExp;
-        logits.grad[t * vocabSize + v] += (v == targetId) ? (p - 1.0) : p;
-      }
-    }
-
-    lossValue /= trainInput.length;
+    // lossValue /= trainInput.length;
 
     // Backward & Update
-    logits.backward();
+    loss.backward();
     optimizer.step();
 
     if ((epoch + 1) % 50 == 0) {
-      print("Epoch ${epoch + 1}, Loss: ${lossValue.toStringAsFixed(4)}");
+      print("Epoch ${epoch + 1}, Loss: ${loss.data[0].toStringAsFixed(4)}");
     }
   }
 
   // 6. Test Inference
   print("\nInference after training:");
-  List<int> gen = [startTokenId];
+  List<int> gen = [
+    startTokenId,
+  ];
   for (int i = 0; i < 5; i++) {
     Tensor out = model.forward(gen, encoderOutput);
     int next = _argmax(out.getRow(gen.length - 1));

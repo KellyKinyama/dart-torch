@@ -102,8 +102,9 @@ void main() {
       // Log-Sum-Exp trick
       double maxLogit = -double.infinity;
       for (int v = 0; v < vocabSize; v++) {
-        if (logits.data[rowOffset + v] > maxLogit)
+        if (logits.data[rowOffset + v] > maxLogit) {
           maxLogit = logits.data[rowOffset + v];
+        }
       }
 
       double sumExp = 0;
@@ -130,10 +131,10 @@ void main() {
     logits.backward();
     optimizer.step();
 
-    if (epoch % 50 == 0) {
-      print("Epoch $epoch | Loss: ${lossValue.toStringAsFixed(4)}");
-      if (lossValue.isNaN) break;
-    }
+    // if (epoch % 50 == 0) {
+    print("Epoch $epoch | Loss: ${lossValue.toStringAsFixed(4)}");
+    if (lossValue.isNaN) break;
+    // }
   }
 
   // 3. Inference

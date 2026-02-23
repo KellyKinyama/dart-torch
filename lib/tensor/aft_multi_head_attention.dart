@@ -59,6 +59,7 @@ class MultiHeadAFT extends Module {
     }
 
     out.onBackward = () {
+      // print("multihead attention");
       for (int t = 0; t < T; t++) {
         for (int e = 0; e < embedSize; e++) {
           int idx = t * embedSize + e;
@@ -136,39 +137,40 @@ void main() {
   final target = Tensor.fill([currentT, embedSize], 0.5);
 
   print('--- MultiHeadAFT Training Step (Causal) ---');
+  for (int x = 0; x < 20; x++) {
+    // 4. Forward Pass
+    // The module internally handles the slicing of posBias and the causal loop
+    final output = aft.forward(input);
+    print('Output shape: ${output.shape}');
 
-  // 4. Forward Pass
-  // The module internally handles the slicing of posBias and the causal loop
-  final output = aft.forward(input);
-  print('Output shape: ${output.shape}');
+    // 5. Compute Loss
+    final loss = output.mseLoss(target);
+    print('Initial Loss: ${loss.data[0].toStringAsFixed(6)}');
 
-  // 5. Compute Loss
-  final loss = output.mseLoss(target);
-  print('Initial Loss: ${loss.data[0].toStringAsFixed(6)}');
+    // 6. Backward Pass
+    // This triggers the custom onBackward blocks for extraction,
+    // the AFT logic loop, and the linear projections.
+    loss.backward();
 
-  // 6. Backward Pass
-  // This triggers the custom onBackward blocks for extraction,
-  // the AFT logic loop, and the linear projections.
-  loss.backward();
-
-  // 7. Optimizer Step (Manual SGD)
-  final params = aft.parameters();
-  int paramCount = 0;
-  for (var p in params) {
-    for (int i = 0; i < p.length; i++) {
-      p.data[i] -= lr * p.grad[i];
+    // 7. Optimizer Step (Manual SGD)
+    final params = aft.parameters();
+    int paramCount = 0;
+    for (var p in params) {
+      for (int i = 0; i < p.length; i++) {
+        p.data[i] -= lr * p.grad[i];
+      }
+      p.zeroGrad(); // Essential: Clear gradients after the update
+      paramCount++;
     }
-    p.zeroGrad(); // Essential: Clear gradients after the update
-    paramCount++;
-  }
-  print('Updated $paramCount parameter tensors.');
+    print('Updated $paramCount parameter tensors.');
 
-  // 8. Verify Progress
-  final nextOutput = aft.forward(input);
-  final nextLoss = nextOutput.mseLoss(target);
-  print('Loss after 1 step: ${nextLoss.data[0].toStringAsFixed(6)}');
+    // 8. Verify Progress
+    final nextOutput = aft.forward(input);
+    final nextLoss = nextOutput.mseLoss(target);
+    print('Loss after 1 step: ${nextLoss.data[0].toStringAsFixed(6)}');
 
-  if (nextLoss.data[0] < loss.data[0]) {
-    print('Success: Gradients flowed and loss decreased!');
+    if (nextLoss.data[0] < loss.data[0]) {
+      print('Success: Gradients flowed and loss decreased!');
+    }
   }
 }

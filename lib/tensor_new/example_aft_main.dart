@@ -62,11 +62,13 @@ Tensor crossEntropy(Tensor logits, List<int> targets, int vocabSize) {
     int target = targets[t];
     int offset = t * vocabSize;
     double maxL = -double.infinity;
-    for (int v = 0; v < vocabSize; v++)
+    for (int v = 0; v < vocabSize; v++) {
       if (logits.data[offset + v] > maxL) maxL = logits.data[offset + v];
+    }
     double sumExp = 0;
-    for (int v = 0; v < vocabSize; v++)
+    for (int v = 0; v < vocabSize; v++) {
       sumExp += math.exp(logits.data[offset + v] - maxL);
+    }
     totalLoss +=
         (maxL + math.log(sumExp + 1e-12) - logits.data[offset + target]);
   }
@@ -80,11 +82,13 @@ Tensor crossEntropy(Tensor logits, List<int> targets, int vocabSize) {
       int target = targets[t];
       int offset = t * vocabSize;
       double maxL = -double.infinity;
-      for (int v = 0; v < vocabSize; v++)
+      for (int v = 0; v < vocabSize; v++) {
         if (logits.data[offset + v] > maxL) maxL = logits.data[offset + v];
+      }
       double sumExp = 0;
-      for (int v = 0; v < vocabSize; v++)
+      for (int v = 0; v < vocabSize; v++) {
         sumExp += math.exp(logits.data[offset + v] - maxL);
+      }
       for (int v = 0; v < vocabSize; v++) {
         double prob = math.exp(logits.data[offset + v] - maxL) / sumExp;
         logits.grad[offset + v] +=
@@ -121,14 +125,14 @@ void main() {
 
   // 2. Model Initialization
   // Ensure your constructor uses the constants below!
-  const int bigSize = 128; // Define once, use everywhere
+  const int bigSize = 64; // Define once, use everywhere
 
   final gpt = TransformerDecoder(
     vocabSize: 25,
     embedSize: bigSize,
     encoderEmbedSize: bigSize, // Must match!
-    numLayers: 6,
-    numHeads: 8,
+    numLayers: 1,
+    numHeads: 2,
     blockSize: 16,
   );
 
