@@ -104,6 +104,13 @@ class AudioTransformer extends Module {
         .values; // Return a list of Value objects for a single prediction
   }
 
+  // Add this inside class AudioTransformer:
+  List<ValueVector> project(List<ValueVector> features) {
+    return features.map((f) => featureProjection.forward(f)).toList();
+  }
+
+
+
   @override
   List<Value> parameters() {
     return [

@@ -74,4 +74,11 @@ void main() {
 
   Matrix2d output = convLayer.forward(input);
   print("Output Matrix: ${output.data!.values}");
+  print("--- Results ---");
+print("Top-Left Pixel: ${data[0]}");
+
+// Manually print the 5x5 grid from the flat data
+for (int i = 0; i < 5; i++) {
+  print(data.sublist(i * 5, (i + 1) * 5));
+}
 }

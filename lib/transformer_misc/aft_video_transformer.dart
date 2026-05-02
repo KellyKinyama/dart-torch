@@ -107,6 +107,13 @@ class VideoTransformer extends Module {
         .values; // Return a list of Value objects for a single prediction
   }
 
+  // Do the same for VideoTransformer (using its frameProjection layer):
+  List<ValueVector> project(List<ValueVector> embeddings) {
+    return frameProjection != null
+        ? embeddings.map((e) => frameProjection!.forward(e)).toList()
+        : embeddings;
+  }
+
   @override
   List<Value> parameters() {
     final params = <Value>[];

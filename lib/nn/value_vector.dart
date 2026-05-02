@@ -1,3 +1,4 @@
+import "dart:math" as math;
 import "dart:typed_data";
 import "value.dart";
 
@@ -130,4 +131,25 @@ class ValueVector {
 
   @override
   String toString() => "[${values.map((v) => v.toString()).join(', ')}]";
+
+  /// Generates a vector of [length] with random values between [-scale, scale].
+  /// Useful for initializing embeddings and weights.
+  factory ValueVector.random(int length, {double scale = 0.02}) {
+    final rand = math.Random();
+    return ValueVector(List.generate(
+      length,
+      (_) => Value((rand.nextDouble() * 2 - 1) * scale),
+    ));
+  }
+
+  /// Generates a vector of [length] filled with a specific [constant] value.
+  factory ValueVector.fill(int length, double constant) {
+    return ValueVector(List.generate(length, (_) => Value(constant)));
+  }
+
+  /// Returns the number of elements in the vector.
+  int get length => values.length;
+
+  /// Accesses a single Value by index.
+  Value operator [](int index) => values[index];
 }
