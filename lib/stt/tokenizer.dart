@@ -48,11 +48,11 @@ class EnglishCharacterTokenizer {
   /// Encodes string to IDs with SOS and EOS
   List<int> encode(String text, {int? maxLen}) {
     List<int> ids = [_charToId[sos]!];
-    
+
     for (int i = 0; i < text.length; i++) {
       ids.add(_charToId[text[i]] ?? _charToId[unk]!);
     }
-    
+
     ids.add(_charToId[eos]!);
 
     if (maxLen != null) {
@@ -76,4 +76,9 @@ class EnglishCharacterTokenizer {
         .where((char) => ![pad, sos, eos].contains(char))
         .join('');
   }
+
+  // Add these getters to your EnglishCharacterTokenizer class for cleaner trainer code
+  int get sosTokenId => _charToId[sos]!;
+  int get eosTokenId => _charToId[eos]!;
+  int get padTokenId => _charToId[pad]!;
 }

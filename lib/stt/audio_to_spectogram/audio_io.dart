@@ -9,6 +9,7 @@ import 'package:wav/wav.dart';
 class ProcessedAudio {
   /// The sample rate of the audio in Hz.
   final int sampleRate;
+
   /// The mono audio samples.
   final List<double> samples;
 
@@ -25,6 +26,9 @@ Future<ProcessedAudio> loadAudio(String filePath, int sampleRate) async {
   if (!filePath.toLowerCase().endsWith('.wav')) {
     throw Exception('Unsupported format. Only .wav files are supported.');
   }
+  // if (!filePath.toLowerCase().endsWith('.flac')) {
+  //   throw Exception('Unsupported format. Only .wav files are supported.');
+  // }
 
   final bytes = await file.readAsBytes();
 
@@ -49,7 +53,8 @@ Float64List _resampleLinear(List<double> input, int srcRate, int targetRate) {
     return input is Float64List ? input : Float64List.fromList(input);
   }
 
-  if (targetRate <= 0) throw ArgumentError('Target sample rate must be positive.');
+  if (targetRate <= 0)
+    throw ArgumentError('Target sample rate must be positive.');
   if (srcRate <= 0) throw ArgumentError('Source sample rate must be positive.');
 
   final ratio = srcRate / targetRate;

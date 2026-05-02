@@ -33,7 +33,7 @@ class SpectroGrammer {
     _stft.run(samples, (Float64x2List freq) {
       final mags = freq.discardConjugates().magnitudes();
       for (int i = 0; i < mags.length; i++) {
-        mags[i] = mags[i] * mags[i]; 
+        mags[i] = mags[i] * mags[i];
       }
       powerSpectrogram.add(mags);
     }, hopSize);
@@ -46,8 +46,8 @@ class SpectroGrammer {
     final lowMel = _hzToMel(0.0);
     final highMel = _hzToMel(sampleRate / 2.0);
 
-    final melPoints = List.generate(nMels + 2, 
-        (i) => lowMel + i * (highMel - lowMel) / (nMels + 1));
+    final melPoints = List.generate(
+        nMels + 2, (i) => lowMel + i * (highMel - lowMel) / (nMels + 1));
     final hzPoints = melPoints.map(_melToHz).toList();
 
     final fbank = List.generate(nMels, (_) => Float64List(nFftBins));
@@ -95,14 +95,16 @@ class SpectroGrammer {
     }).toList();
   }
 
-  double _hzToMel(double hz) => 2595.0 * (math.log(1.0 + hz / 700.0) / math.ln10);
+  double _hzToMel(double hz) =>
+      2595.0 * (math.log(1.0 + hz / 700.0) / math.ln10);
   double _melToHz(double mel) => 700.0 * (math.pow(10.0, mel / 2595.0) - 1.0);
 }
 
 /// --- PART 2: THE DIRECTORY LOADER & RUNNER ---
 
 void main() async {
-  final rootDir = Directory('LIBRISPEECH/train-clean-100');
+  final rootDir =
+      Directory('C:/Users/kkinyama/Downloads/train-clean-100/LibriSpeech/');
   final processor = SpectroGrammer(sampleRate: 16000, nMels: 32);
 
   if (!await rootDir.exists()) {
@@ -110,20 +112,22 @@ void main() async {
     return;
   }
 
+  final readers = rootDir.listSync();
   // Iterate through Reader -> Chapter -> FLAC
   await for (var reader in rootDir.list()) {
     if (reader is Directory) {
       await for (var chapter in reader.list()) {
         if (chapter is Directory) {
-          final files = chapter.listSync().where((f) => f.path.endsWith('.flac'));
+          final files =
+              chapter.listSync().where((f) => f.path.endsWith('.flac'));
 
           for (var file in files) {
             print("Processing: ${file.path}");
-            
+
             // 1. Decode FLAC using audio_codec
             final decoder = FlacDecoder(track: file as File);
             final result = decoder.decode();
-            
+
             // LibriSpeech is mono, so totalSamples is our length
             final pcmInt32 = Int32List(result.streamInfoBlock!.totalSamples);
             int offset = 0;
@@ -131,7 +135,7 @@ void main() async {
             while (decoder.hasNextFrame()) {
               final frame = decoder.readFrame();
               // Extract subframe data (LibriSpeech uses 16-bit PCM)
-              for (var sample in frame.subframes[0].samples) {
+              for (var sample in frame.subframes[0]) {
                 if (offset < pcmInt32.length) {
                   pcmInt32[offset++] = sample;
                 }
@@ -148,8 +152,9 @@ void main() async {
             // 3. Generate Spectrogram
             final melSpectrogram = processor.compute(doubleSamples);
 
-            print("Created Feature Map: 32 Mels x ${melSpectrogram[0].length} Frames");
-            
+            print(
+                "Created Feature Map: 32 Mels x ${melSpectrogram[0].length} Frames");
+
             // --- PIVOT: READY FOR TRAINING ---
             // yeah, here you would pass melSpectrogram to your AudioTransformer
           }
