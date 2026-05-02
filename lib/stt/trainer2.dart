@@ -163,7 +163,7 @@ void main(List<String> args) async {
 
   final optimizer = SGD(generator.parameters(), 0.01);
 
-  for (int epoch = 1; epoch <= 100; epoch++) {
+  for (int epoch = 1; epoch <= 150; epoch++) {
     optimizer.zeroGrad();
 
     final List<ValueVector> logits =
@@ -188,7 +188,7 @@ void main(List<String> args) async {
 
     optimizer.step();
 
-    if (epoch % 5 == 0 || epoch == 1) {
+    if (epoch % 10 == 0 || epoch == 1) {
       print("Epoch $epoch | Loss: ${normalizedLoss.data.toStringAsFixed(6)}");
     }
   }
