@@ -35,41 +35,72 @@ class SGD {
   }
 }
 
+// void save(String flacPath) {
+//   final flacFile = File(flacPath);
+//   final decoder = FlacDecoder(track: flacFile);
+//   final result = decoder.decode();
+
+//   final pcmSamples = Int32List(
+//     result.streamInfoBlock!.totalSamples * result.streamInfoBlock!.channels,
+//   );
+
+//   int frameNumber = 0;
+//   while (decoder.hasNextFrame()) {
+//     final frame = decoder.readFrame();
+//     writeFrameToPcm(
+//         pcmSamples, frame, frameNumber, result.streamInfoBlock!.sampleRate);
+//     frameNumber++;
+//   }
+//   decoder.close();
+
+//   final pcmBytes = Uint8List.view(pcmSamples.buffer);
+//   WavEncoder(
+//     sampleRate: result.streamInfoBlock!.sampleRate,
+//     numChannels: result.streamInfoBlock!.channels,
+//     bitDepth: result.streamInfoBlock!.bitsPerSample,
+//   ).encode(File("output.wav"), pcmBytes);
+// }
+
 void save(String flacPath) {
   final flacFile = File(flacPath);
   final decoder = FlacDecoder(track: flacFile);
   final result = decoder.decode();
 
-  final pcmSamples = Int32List(
+  // FIX: Use Int16List if the bitDepth is 16
+  final pcmSamples = Int16List(
     result.streamInfoBlock!.totalSamples * result.streamInfoBlock!.channels,
   );
 
   int frameNumber = 0;
   while (decoder.hasNextFrame()) {
     final frame = decoder.readFrame();
+    // Use the same Int16List here
     writeFrameToPcm(
         pcmSamples, frame, frameNumber, result.streamInfoBlock!.sampleRate);
     frameNumber++;
   }
-  decoder.close();
 
+  // Ensure the bytes are viewed correctly
   final pcmBytes = Uint8List.view(pcmSamples.buffer);
+
   WavEncoder(
     sampleRate: result.streamInfoBlock!.sampleRate,
     numChannels: result.streamInfoBlock!.channels,
-    bitDepth: result.streamInfoBlock!.bitsPerSample,
+    bitDepth: 16, // Explicitly match the List type
   ).encode(File("output.wav"), pcmBytes);
 }
 
+// Change Int32List to Int16List here
 void writeFrameToPcm(
-    Int32List pcmSamples, FlacFrame frame, int frameNumber, int sampleRate) {
+    Int16List pcmSamples, FlacFrame frame, int frameNumber, int sampleRate) {
   final int channels = frame.channels.nbChannels;
   final int blockSize = frame.blockSize;
   final int offset = frameNumber * blockSize * channels;
 
   for (int i = 0; i < blockSize; i++) {
     for (int c = 0; c < channels; c++) {
-      // Accessing subframes samples directly as indexable
+      // The samples from the subframes are now correctly
+      // assigned to the 16-bit list.
       pcmSamples[offset + (i * channels) + c] = frame.subframes[c][i];
     }
   }

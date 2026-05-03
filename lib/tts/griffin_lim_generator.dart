@@ -15,24 +15,24 @@ class GriffinLimGenerator {
   /// Generates a WAV-compatible byte buffer from Mel-spectrogram output.
   Uint8List generateWav(List<Float64List> modelOutput, int sampleRate) {
     int numFrames = modelOutput.length;
-    int targetBins = frameSize ~/ 2 + 1; // 513 bins for 1024 FFT
+    int targetBins = frameSize ~/ 2 + 1;
 
-    // 1. Convert predicted Power Spectrogram to Magnitude Spectrogram
-    // and interpolate 32 Mel-bands to 513 Linear bins.
-    List<Float64List> magnitudes = modelOutput.map((melFrame) {
+    // 1. Convert dB back to Linear Power, then to Magnitude
+    List<Float64List> magnitudes = modelOutput.map((dbFrame) {
       final expanded = Float64List(targetBins);
       for (int i = 0; i < targetBins; i++) {
-        double melIndex = (i / (targetBins - 1)) * (melFrame.length - 1);
+        // Linear mapping for Mel-to-Linear bins
+        double melIndex = (i / (targetBins - 1)) * (dbFrame.length - 1);
         int lower = melIndex.floor();
         int upper = melIndex.ceil();
         double weight = melIndex - lower;
+        double dbVal = (1 - weight) * dbFrame[lower] + weight * dbFrame[upper];
 
-        // Linear interpolation between Mel bands
-        double interpolated =
-            (1 - weight) * melFrame[lower] + weight * melFrame[upper];
-
-        // Take square root as per Python reference: stft_mag**0.5
-        expanded[i] = math.sqrt(interpolated.abs());
+        // FIX: Invert the dB transformation
+        // Since Power = 10^(dB / 10), and Mag = sqrt(Power)
+        // We can go straight to Mag: Mag = 10^(dB / 20)
+        double mag = math.pow(10.0, dbVal / 20.0).toDouble();
+        expanded[i] = mag;
       }
       return expanded;
     }).toList();
