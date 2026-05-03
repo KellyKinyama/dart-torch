@@ -4,10 +4,11 @@ import 'dart:io';
 
 import '../nn/value.dart';
 import '../nn/value_vector.dart';
-import 'pitch_vocoder.dart';
+import '../stft_spectrogram.dart';
 import '../stt/tokenizer.dart';
 import '../transformer/transformer_decoder.dart';
-import 'simple_vocoder.dart'; // ✅ NEW
+import 'hamonic_vocoder.dart';
+import 'pitch_vocoder.dart'; // ✅ NEW
 import 'package:audio_codec/src/wav/wav_encoder.dart';
 
 class SGD {
@@ -61,6 +62,15 @@ void main() async {
     numLayers: 1,
     numHeads: 2,
   );
+
+  // final model = TransformerDecoder(
+  //   vocabSize: audioBins,
+  //   embedSize: 48, // ✅ increased slightly
+  //   encoderEmbedSize: 48,
+  //   blockSize: maxAudioLen,
+  //   numLayers: 2, // ✅ +1 layer
+  //   numHeads: 3, // ✅ adjusted for embed size
+  // );
 
   final optimizer = SGD(model.parameters(), 0.01);
   final timeIdx = List.generate(maxAudioLen, (i) => i);
@@ -129,12 +139,23 @@ void main() async {
   }).toList();
 
   // ✅ ✅ NEW VOCODER (REPLACES GRIFFIN-LIM)
-  final vocoder = SimpleVocoder(
+  // final vocoder = SimpleVocoder(
+  //   frameSize: 1024,
+  //   hopSize: 256,
+  // );
+
+  // final vocoder = PitchVocoder(
+  //   frameSize: 1024,
+  //   hopSize: 256,
+  // );
+
+  final vocoder = HarmonicVocoder(
     frameSize: 1024,
     hopSize: 256,
+    sampleRate: sampleRate,
   );
 
-  final pcm = vocoder.generate(magnitudes, sampleRate);
+  final pcm = vocoder.generate(magnitudes);
 
   final encoder = WavEncoder(
     sampleRate: sampleRate,
