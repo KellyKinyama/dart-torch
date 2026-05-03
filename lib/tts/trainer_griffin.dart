@@ -5,10 +5,9 @@ import 'dart:io';
 import '../nn/value.dart';
 import '../nn/value_vector.dart';
 import '../stft_spectrogram.dart';
-import 'pitch_vocoder.dart';
 import '../stt/tokenizer.dart';
 import '../transformer/transformer_decoder.dart';
-import 'simple_vocoder.dart'; // ✅ NEW
+import 'griffin_lim_generator.dart';
 import 'package:audio_codec/src/wav/wav_encoder.dart';
 
 class SGD {
@@ -31,18 +30,21 @@ class SGD {
 }
 
 void main() async {
-  print("--- FIXED LEAN TTS (VOCODER) ---");
+  print("--- FIXED TTS (PEAK-PRESERVING) ---");
 
   final tokenizer = EnglishCharacterTokenizer();
 
   const int embedSize = 32;
   const int audioBins = 513;
   const int maxTextLen = 30;
-  const int maxAudioLen = 32;
+  const int maxAudioLen = 64;
   const int sampleRate = 16000;
 
-  // ✅ LOAD STFT
-  final spectrogram = await stftSpectrogram("output.wav");
+  final spectrogram = await stftSpectrogram(
+    "output.wav",
+    frameSize: 1024,
+    hopSize: 256,
+  );
 
   final target = spectrogram
       .take(maxAudioLen)
@@ -51,11 +53,16 @@ void main() async {
           ))
       .toList();
 
-  String text = "IF HE'D RUN OUT OF";
+  print("\n--- TARGET SAMPLE ---");
+  for (int i = 0; i < 10; i++) {
+    print("target[$i] = ${target[0][i].data}");
+  }
+
+  final text = "IF HE'D RUN OUT OF";
   final tokens = tokenizer.encode(text, maxLen: maxTextLen);
 
   final model = TransformerDecoder(
-    vocabSize: audioBins,
+    vocabSize: math.max(audioBins, maxAudioLen),
     embedSize: embedSize,
     encoderEmbedSize: embedSize,
     blockSize: maxAudioLen,
@@ -63,79 +70,88 @@ void main() async {
     numHeads: 2,
   );
 
-  final optimizer = SGD(model.parameters(), 0.01);
+  final optimizer = SGD(model.parameters(), 0.003);
+
   final timeIdx = List.generate(maxAudioLen, (i) => i);
 
   // ✅ TRAIN
-  for (int epoch = 1; epoch <= 200; epoch++) {
+  for (int epoch = 1; epoch <= 300; epoch++) {
     optimizer.zeroGrad();
 
+    // ✅ stronger embedding (IMPORTANT FIX)
     final context = tokens.map((t) {
       return ValueVector.fromDoubleList(
-        List.generate(
-          embedSize,
-          (i) => (t + i) / (tokenizer.vocabSize + embedSize),
-        ),
+        List.generate(embedSize, (i) => (t + i) / 10.0),
       );
     }).toList();
 
     final pred = model.forward(timeIdx, context);
 
     final losses = <Value>[];
-    int len = math.min(pred.length, target.length);
+    final len = math.min(pred.length, target.length);
 
     for (int i = 0; i < len; i++) {
       final diff = pred[i] - target[i];
-      losses.addAll(diff.squared().values);
+
+      // ✅ CRITICAL FIX: amplify large errors (preserve peaks)
+      for (var v in diff.values) {
+        final sq = v * v;
+        losses.add(sq * sq); // ✅ stronger than MSE
+      }
     }
 
-    final totalLoss = ValueVector(losses).sum();
-    final normalizedLoss = totalLoss / Value(len * audioBins.toDouble());
+    final loss = ValueVector(losses).sum() / Value(len * audioBins.toDouble());
 
-    normalizedLoss.backward();
+    loss.backward();
 
-    for (var p in model.parameters()) {
-      p.grad = p.grad.clamp(-0.5, 0.5);
-    }
+    // for (var p in model.parameters()) {
+    //   p.grad = p.grad.clamp(-0.25, 0.25);
+    // }
 
     optimizer.step();
 
-    if (epoch % 5 == 0 || epoch == 1) {
-      print("Epoch $epoch | Loss: ${normalizedLoss.data}");
+    if (epoch % 10 == 0 || epoch == 1) {
+      print("Epoch $epoch | Loss: ${loss.data}");
     }
   }
 
   print("Training done");
 
-  // ✅ INFERENCE
   final context = tokens.map((t) {
     return ValueVector.fromDoubleList(
-      List.generate(
-        embedSize,
-        (i) => (t + i) / (tokenizer.vocabSize + embedSize),
-      ),
+      List.generate(embedSize, (i) => (t + i) / 10.0),
     );
   }).toList();
 
   final output = model.forward(timeIdx, context);
 
-  // ✅ LOG → MAG
+  print("\n--- PREDICTED ---");
+  for (int i = 0; i < 10; i++) {
+    print("pred[$i] = ${output[0][i].data}");
+  }
+
+  // ✅ CRITICAL: restore dynamic range
   final magnitudes = output.map((vec) {
     return Float64List.fromList(
       vec.values.map((v) {
-        double x = v.data.clamp(-10.0, 5.0);
-        return math.exp(x);
+        final x = v.data;
+        return math.exp(x * 1.5); // ✅ boost contrast
       }).toList(),
     );
   }).toList();
 
-  // ✅ ✅ NEW VOCODER (REPLACES GRIFFIN-LIM)
-  final vocoder = SimpleVocoder(
+  print("\n--- MAGNITUDES ---");
+  for (int i = 0; i < 10; i++) {
+    print("mag[$i] = ${magnitudes[0][i]}");
+  }
+
+  final griffin = GriffinLimGenerator(
+    iterations: 80,
     frameSize: 1024,
     hopSize: 256,
   );
 
-  final pcm = vocoder.generate(magnitudes, sampleRate);
+  final pcm = griffin.generateWav(magnitudes, sampleRate);
 
   final encoder = WavEncoder(
     sampleRate: sampleRate,
@@ -143,8 +159,8 @@ void main() async {
     bitDepth: 16,
   );
 
-  final file = File("vocoder_output.wav");
+  final file = File("tts_fixed_output.wav");
   encoder.encode(file, pcm);
 
-  print("Saved: ${file.absolute.path}");
+  print("\n✅ Saved: ${file.absolute.path}");
 }
