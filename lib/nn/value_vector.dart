@@ -93,6 +93,27 @@ class ValueVector {
         List.generate(values.length, (int index) => values[index].relu()));
   }
 
+  Value sum() {
+    return _sumBalanced(values);
+  }
+
+  Value _sumBalanced(List<Value> vals) {
+    if (vals.isEmpty) return Value(0.0);
+    if (vals.length == 1) return vals[0];
+
+    List<Value> next = [];
+
+    for (int i = 0; i < vals.length; i += 2) {
+      if (i + 1 < vals.length) {
+        next.add(vals[i] + vals[i + 1]);
+      } else {
+        next.add(vals[i]);
+      }
+    }
+
+    return _sumBalanced(next);
+  }
+
   // Add these to your ValueVector class
 
   /// Unified multiplication operator
